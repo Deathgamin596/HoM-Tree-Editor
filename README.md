@@ -1,14 +1,24 @@
 # Heart of Magic Tree Editor
 
-This is fully Coded by AI in FireBase Stuido - The idea was mine and something I wanted, but did not have the time or know how to make it myself if you want to fork it go for it.
+A desktop tool for visualizing and editing spell trees for the Heart of Magic mod. It reads scanned spell records, organizes them into radial school-based trees, and lets you refine prerequisites, themes, and layout before exporting a structured grimoire.
 
-The Heart of Magic (HoM) Tree Editor is a specialized visual development tool designed for creating and managing complex spell structures. It allows users to design radial skill trees, manage prerequisites (hard and soft), and export structured grimoires for use in magic systems.
+## What It Does
+
+1. **Import / Scan** — Load a JSON scan of spells from the Heart of Magic mod or import an existing grimoire file.
+2. **Tree Building** — Automatically groups spells by school, assigns tiers based on skill level, and lays them out in radial sectors.
+3. **Visual Editing** — Pan, zoom, drag, multi-select, and link nodes with hard/soft prerequisites in an interactive canvas.
+4. **Refine** — Edit display names, themes, lock positions, and rerun the tree builder with different rules without losing manual work.
+5. **Export** — Save the finalized grimoire as JSON for use with the Heart of Magic mod.
 
 ## Key Features
-- **Visual Node Editing**: Drag and drop spells in a radial or grid layout with coordinate snapping.
-- **Arcane Connections**: Manage hierarchical relationships with support for hard and soft prerequisites.
-- **Grimoire Management**: Seamlessly import and export spell data in a standardized JSON format.
-- **Responsive Canvas**: Pan, zoom, and multi-select tools optimized for massive magical datasets.
+
+- **Radial Tree Layout** — Each school gets its own sector; tiers are arranged from Novice (core) out to Master.
+- **Smart Linking** — Automatic parent assignment respects tier gaps, theme matching, and a 3-child cap.
+- **Search** — Quickly find spells by name or Form ID from the dashboard or header.
+- **Node Editor** — Inspect and adjust individual spell metadata, coordinates, and connections.
+- **Dashboard** — Overview of schools, node counts, and skill distribution.
+- **Undo / History** — Step back through edits.
+- **Standalone Desktop App** — Built with Tauri for a native Windows, macOS, or Linux experience.
 
 ## Building the Standalone Application (Tauri)
 
