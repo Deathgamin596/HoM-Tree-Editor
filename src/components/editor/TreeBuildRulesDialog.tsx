@@ -18,17 +18,17 @@ interface TreeBuildRulesDialogProps {
 export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount }: TreeBuildRulesDialogProps) {
   const [tierGap, setTierGap] = useState<TreeBuildRules['tierGap']>(1)
   const [maxChildren, setMaxChildren] = useState(3)
+  const [maxParents, setMaxParents] = useState(1)
   const [rootCount, setRootCount] = useState(1)
   const [themeMatching, setThemeMatching] = useState(true)
-  const [seed, setSeed] = useState<TreeBuildRules['seed']>('random')
 
   const handleConfirm = () => {
     onConfirm({
       tierGap,
       maxChildren,
+      maxParents,
       rootCount,
       themeMatching,
-      seed,
     })
     onOpenChange(false)
   }
@@ -96,6 +96,23 @@ export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Max Parents Per Node</Label>
+            <Select value={String(maxParents)} onValueChange={(val) => setMaxParents(Number(val))}>
+              <SelectTrigger className="bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5].map(n => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              Maximum number of prerequisite links a spell can have.
+            </p>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Theme Matching</Label>
@@ -104,24 +121,6 @@ export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount
               </p>
             </div>
             <Switch checked={themeMatching} onCheckedChange={setThemeMatching} />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Seed</Label>
-            <Select value={String(seed)} onValueChange={(val) => setSeed(val === 'random' ? 'random' : Number(val))}>
-              <SelectTrigger className="bg-background border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="random">Random</SelectItem>
-                <SelectItem value="0">Fixed (0)</SelectItem>
-                <SelectItem value="12345">Fixed (12345)</SelectItem>
-                <SelectItem value="99999">Fixed (99999)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-[10px] text-muted-foreground">
-              Random produces a different tree each time. Fixed seeds are reproducible.
-            </p>
           </div>
         </div>
 

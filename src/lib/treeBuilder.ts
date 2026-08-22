@@ -111,28 +111,125 @@ function classifyTheme(spell: ScanSpell): string {
   return 'Other'
 }
 
-function classifySpellByName(name: string): string {
+function classifySpellByName(name: string, hasTome?: boolean): string {
   const lower = name.toLowerCase()
 
-  if (/\b(fire|flame|burn|incinerate|firebolt|fireball|flamecloak|cloak|wall\s+of\s+flame)\b/.test(lower)) return 'Fire'
-  if (/\b(frost|ice|cold|freeze|icy|frostbite|icy\s+spear|wall\s+of\s+frost)\b/.test(lower)) return 'Frost'
-  if (/\b(shock|lightning|thunder|storm|spark|wall\s+of\s+lightning)\b/.test(lower)) return 'Shock'
-  if (/\b(heal|restore|cure|regeneration|healing)\b/.test(lower)) return 'Healing'
-  if (/\b(ward|resist|protection)\b/.test(lower)) return 'Wards'
-  if (/\b(turn|banish|undead|dispel)\b/.test(lower)) return 'Turn Undead'
-  if (/\b(summon|conjure|familiar|dremora|atronach|reanimate|zombie|corpse|raise)\b/.test(lower)) return 'Summoning'
-  if (/\b(bound|sword|battleaxe|bow|axe)\b/.test(lower)) return 'Bound'
-  if (/\b(detect|reveal|see|sense|life|dead)\b/.test(lower)) return 'Detection'
-  if (/\b(fear|terror|courage|calm|frenzy|rout|pacify|mind)\b/.test(lower)) return 'Mind'
-  if (/\b(invis|muffle|sneak|hide|step)\b/.test(lower)) return 'Stealth'
-  if (/\b(armor|flesh|shield|oak|stone|hide|dragonhide|mage)\b/.test(lower)) return 'Armor'
-  if (/\b(paralys|paralyze|stun|immobilize)\b/.test(lower)) return 'Paralysis'
+  if (/\b(fire|flames?|burn|incinerate|firebolt|fireball|flamecloak|cloak|wall\s+of\s+flames?|scorch\w*|flamestrike|hellfire|firebomb|flare|dull\s+embers|inferno|apocalypse|carbonize|pyroclasm|immolate|fiery\s+grasp|searing\s+grasp|firebloom|flameheart|incendiary\s+flow|infernal\s+mist|balefire|molten\w*|arclight\w*|third\s+era\s+apocalypse|ash\s+cloud|burning\s+touch|ghostflame|ash\w*)\b/.test(lower)) return 'Fire'
+  if (/\b(frost|ice|cold|freeze|frozen|icy|frostbite|icy\s+spear|wall\s+of\s+frost|snow|sleet|hail|hailstone|blizzard|fimbul|midnight\s+snow|vulom\'?s\s+blizzard|tsunice\s+storm|winter|unbounded\s+freezing|frostbolt|cryoblast|hoarfrost|chilling\s+touch|freezing\s+grasp|frostburst|icicle|arctic\s+fortress)\b/.test(lower)) return 'Frost'
+  if (/\b(shock|lightning|thunder|thunderbolt|thunderburst|storm|sparks?|wall\s+of\s+lightning|zap|unbounded\s+storms|teslasphere|tonitrus|scattershock|thundercrack|crackle|electrocute|electrify|stormblast|crackling\s+static|howling\s+blast|thundering\s+grasp|thundering\s+hooves|concussive\s+blast|electrosphere|witch\s+bolt|static\s+touch|overcharge|shocking\s+touch)\b/.test(lower)) return 'Shock'
+  if (/\b(wish|manifest\s+(?:delicacy|enchanting\s+disc|magic\s+mirror)|clear\s+weather|area\s+restoration)\b/.test(lower)) return 'Wish'
+  if (/\b(heal|restore|cure|regeneration|healing|salvation|close\s+(?:greater\s+)?wounds|rejuvenate|rejuvenating\s+touch|revitalizing\s+growth|cleanse|azure\s+reconstruction)\b/.test(lower)) return 'Healing'
+  if (/\b(ward|resist|protection|quen\s+-\s+(?:bastion|guardian)|magic\s+barrier|prismatic\s+skin|sealed\s+resolve|sanctuary|natural\s+barrier)\b/.test(lower)) return 'Wards'
+  if (/\b(turn\s+undead|banish|dispel|exorcism|repel\s+undead|bane\s+of\s+the\s+undead|turn\s+(?:greater|lesser)\s+undead)\b/.test(lower)) return 'Turn Undead'
+  if (/\b(summon|conjure|familiar|dremora|atronach|reanimate|zombie|corpse|raise|call|the\s+eternal\s+legion|banquet\s+of\s+bats|oathbound\s+guardian|dwemer\s+animunculi|supercharged\s+sprites|summoning\s+rune|bond\s+of\s+summoning|recruit\s+mirai|xsummon\s+mech\s+horsesx|infernal\s+army|wild\s+hunt|create\s+tree\s+totem)\b/.test(lower)) return 'Summoning'
+  if (/\b(bound|sword|battleaxe|bow|axe|blade|dagger|mace|warhammer|greatsword|dancing\s+blades|runeblades|swordbreaker|dwemerbane|the\s+emperor\'?s\s+hand|stave\s+of\s+binding)\b/.test(lower)) return 'Bound'
+  if (/\b(detect|reveal|sense|life|dead|clair|clairvoyance|locate|ancient\s+vision|night\s+eye|night\s+vision|visions\s+of\s+opportunity|predator\s+vision|shalidor\'?s\s+beacon)\b/.test(lower)) return 'Detection'
+  if (/\b(fear|terror|courage|calm|frenzy|rout|pacify|mind|charm|enrage|rage|hysteria|harmony|mayhem|inhibition|mass\s+inhibition|compelling\s+whispers|suggestion|obedience|hypnotize|domination|enthrall|psychic\s+scream|alluring\s+whispers|terrifying\s+aura|enraging\s+aura|soothing\s+aura|silence|silence\s+rune|command\s+rune|hush|panic|soothe|mute|control|disorient|exhaust|trickster|glamour|thoughtsteal|shared\s+trauma|geas\s+rune|curse\s+of\s+the\s+silent)\b/.test(lower)) return 'Mind'
+  if (/\b(invis|muffle|sneak|hide|step|fade\s+other|vanish|invisibility|chameleon|shroud|shroudwalk|ghostwalk|elusive|avoidance)\b/.test(lower)) return 'Stealth'
+  if (/\b(armor|shield|oak|stone|hide|dragonhide|mage|flesh|prismatic\s+skin|armoreater|impenetrable\s+grove)\b/.test(lower)) return 'Armor'
+  if (/\b(paralys|paralyze|stun|immobilize|petrif|hold|root|entangle|web|snare|paralysis\s+rune|paralyzing\s+escape|rapiers\s+paralysis|fast\s+paralysis|sda_paralysis|xjkparalizepowerattack|paralysing\s+dread|paralyzingdread|rage\s+paralysis)\b/.test(lower)) return 'Paralysis'
   if (/\b(transmute|ore|iron|gold|silver)\b/.test(lower)) return 'Transmute'
-  if (/\b(light|candle|magelight|torch|sun)\b/.test(lower)) return 'Light'
-  if (/\b(daedra|dremora)\b/.test(lower)) return 'Daedra'
+  if (/\b(light|candle|magelight|torch|sun|radiance|beacon|candlelight|firelight|firefly|hovering\s+firefly|sunlight\s+targe|sunbeam|radiant\s+sunbeam|sunlight\s+touch|solar\s+ray|sunburst\s+rune|radiant\s+sunlight\s+rune|wall\s+of\s+sunlight|shalidor\'?s\s+beacon|hollowjack\s+lantern|nether\'?s\s+candlelight|moonlight|moonlight\s+rune|luminous\s+moonlight\s+rune|lunar\s+bolt|lunar\s+aura|lunar\s+singularity|lunar\s+detonation|lunar\s+beacon|luminous\s+moonbeam|moonlight\s+touch|lunar\s+touch|lunar\s+grasp|lunar\s+eclipse|wall\s+of\s+moonlight|arclight\w*)\b/.test(lower)) return 'Light'
+  if (/\b(daedra|dremora|daedric\s+crescent)\b/.test(lower)) return 'Daedra'
   if (/\b(atronach)\b/.test(lower)) return 'Atronach'
+  if (/\b(dark|void|shadow|umbral|gloaming|daumbra|eldritch|astral|arcane|mystic|ether|cosmic|mundus\s+veil|fluttering\s+shadows|twilight\s+sickle|darkness|gather\s+shadows|infernal\s+mist|shadowbond|evil\s+twin|mirror\s+entity|wyrd|riftveil\s+tendrils|the\s+celestial\s+volume\'?s|nebula\'?s\s+finale|abyssal\s+oversight|apocryphal\s+gates|abyssal\s+ink\s+bolt|time\s+break|withershins|lodesphere|backlash|attunement)\b/.test(lower)) return 'Arcane'
+  if (/\b(holy|sacred|divine|hallowed|blessed|sanctified|arkay|stendarr|mara|auriel|wrath\s+of\s+the\s+heavens|absolution|royal\s+absolution|penance|penance\s+aura\s+-\s+fanning|penance\s+aura\s+-\s+shielding|aedric\s+scepter|meridia\'?s\s+wrath|daybreak|radiant\s+sunlight\s+rune|wall\s+of\s+sunlight|eye\s+of\s+the\s+all-maker|augur\s+of\s+aetherius|desperate\s+prayer|godform|crown\'?s\s+verdict|voice\s+of\s+judgment|voice\s+of\s+the\s+king|king\'?s\s+cross|reclamations\s+intervention|scion\'?s\s+embrace|rite\s+of\s+the\s+old\s+gods|salvation|celestial\s+fortitude|aid|radiant\s+oppression)\b/.test(lower)) return 'Holy'
+  if (/\b(knowledge|wisdom|intellect|tome|book|scroll|hethoth\'?s\s+grimoire)\b/.test(lower)) return 'Knowledge'
+  if (/\b(imbue|enchant|infuse|empower|enhance|sharpen|honing|runemend)\b/.test(lower)) return 'Imbue'
+  if (/\b(transmogrify|polymorph|shapeshift|transform|disguise|wildshape|beast\s+form|werewolf|vampire\s+lord|open\s+\w+\s+lock|unlock\s+container|detonate\s+lock|unlock)\b/.test(lower)) return 'Transform'
+  if (/\b(telekinesis|levitate|fly\s+with\s+me|float|aard\s+-\s+telekinetic\s+strike)\b/.test(lower)) return 'Telekinesis'
+  if (/\b(fortify|ocato|boost|blessing|inspire|invigorate|vigor|endurance|strength|might|supernatural\s+reflexes|endowment\s+of\s+wings|haste|speed|swift\s+swim|longstride|wind\s+running|windwalker|rally|battletide|rampage|predator|predator\s+vision|swift\s+chase|enduring\s+horde|blitzkrieg|rite\s+of\s+wings|energize|vitalisation|wildness|ferality|prismatic\s+skin|slowfall|pack\s+mule)\b/.test(lower)) return 'Buff'
+  if (/\b(equilibrium|balance|symmetry)\b/.test(lower)) return 'Utility'
+  if (/\b(mark\s+and\s+recall|recall|teleport|portal|dimension|miraak|naenra|selfteleport|telmithryn|mark|teleportation|dimensional\s+door|exodus|liminal\s+portals:\s+relocate|switcheroo)\b/.test(lower)) return 'Teleport'
+  if (/\b(dragon|dovah|dragonborn|dragonblood|dragonfire|dragonsbane|unrelenting\s+force|fus\s+ro\s+da|throat\s+of\s+the\s+world|odahviing|paarthurnax|sahrotaar)\b/.test(lower)) return 'Dragon'
+  if (/\b(vampire|vampiric|hemorrh|crimson)\b/.test(lower)) return 'Vampire'
+  if (/\b(drain|leech|siphon|absorb|essence\s+leech|spirit\s+drain|soul\s+rend|soul\s+bite|magicka\s+bite|magicka\s+hunger|magicka\s+leech|magicka\s+void|knowledge\s+drain|supreme\s+drain|draining\s+mist|draining\s+piercers|draining\s+shroud|draining\s+touch|essence\s+drain|energy\s+roil|enervate|lifesteal|lifetap|mana\s+burn|mana\s+drain|mana\s+leech|mind\s+drain|power\s+drain|sap\s+essence|spirit\s+leech|vitality\s+drain|transfusion|leeching\s+aurora|consuming\s+power)\b/.test(lower)) return 'Drain'
+  if (/\b(necro|necromancer|necromancy|necrotic|necromantic|blastbones|boneyard|blight|blighted|decompose|bone\w*|skeletal|skeleton|skull|revenant|phantom|ghost|specter|wraith|shade|apparition|wisp|soul|spirit|death\s+cloud|death\s+march|finger\s+of\s+death|reanimation|resurrection|resurrect|thrall|minion|construct\s+skeletons|necrowitch|necroplague|reaper|reaper\s+domina|touch\s+of\s+death|entomb|dust\s+to\s+dust|worm\s+shroud|deliver\s+unto\s+vaermina|harrowing\s+dirge|slay\s+living|horrid\s+wilting|defy\s+death|decrepify|frailty|weaken|parasitic\s+growth|mass\s+immortality|inject\s+(?:corrupted|heinous|unhallowed|vile|wicked)\s+shard|dread\s+cocoon|against\s+divinity)\b/.test(lower)) return 'Necromancer'
+  if (/\b(poison|toxic|venom|plague|disease|infect|toxin|venomous|searing\s+poison|weakness\s+to\s+poison|deadly\s+poison|noxious\s+stings|venomfang|poisonbolt|viperbolt|poisonous\s+touch|viper\'?s\s+grasp|miasma|blinding\s+spores|nocturne\s+pollen|cloudkill|nightshade|mutagen)\b/.test(lower)) return 'Poison'
+  if (/\b(nature|forest|grove|tree|bark|bloom|floral|bramble|thorn\w*|rootbind|vine\w*|spike\w*|druid|spriggan|wild\s+growth|nature\s+spirit|entangle|tentacle|seed|leaf|moss|fern|branch|wood|timber|lumber|harvest|crop|farm|garden|blossom|petal|mildew|rot|decay|decompose|compost|beast|animal|creature|insect|spider|chitin|carapace|shell|scale|feather|fur|hide|pelt|leather|wool|silk|honey|wax|nectar|fruit|berry|nut|grain|grass|hay|straw|reed|bamboo|cane|ivy|liana|strangler|mangrove|palm|coconut|banana|apple|orange|grape|wine|beer|ale|mead|cider|juice|sugar|maple|syrup|molasses|cocoa|chocolate|coffee|tea|tobacco|cotton|hemp|flax|linen|rubber|latex|gum|resin|sap|pitch|tar|oil|fat|tallow|lard|butter|cheese|milk|yogurt|cream|buttermilk|whey|curd|casein|albumin|protein|amino|enzyme|hormone|vitamin|mineral|nutrient|fertilizer|manure|dung|guano|peat|lichen|yeast|mold|smut|rust|catabolism|digestion|absorption|assimilation|metabolism|anabolism|glycolysis|krebs|photosynthesis|respiration|transpiration|evaporation|condensation|precipitation|infiltration|percolation|runoff|erosion|sedimentation|deposition|weathering|wither)\b/.test(lower)) return 'Nature'
+  if (/\b(wind|gale|tempest|cyclone|tornado|hurricane|breeze|zephyr|typhoon|twister|squall|gust|windrunner|windwalk)\b/.test(lower)) return 'Weather'
+  if (/\b(rain)\b/.test(lower)) return 'Weather'
+  if (/\b(water|water\s+bolt|water\s+lance|water\s+palm|water\s+surge|water\s+vortex|water\s+touch|water\s+globe|water\s+ball|water\s+damage|water\s+geyser|water\s+hand|water\s+power\s+bite|water\s+rune|water\s+spray|water\s+thrall|water\s+walking|water\s+wave|waterball|waters\s+of\s+oblivion|rapids|geyser|orum\'?s\s+aquatic\s+escape|tidal\s+wave|torrent|sea\s+stride)\b/.test(lower)) return 'Water'
+  if (/\b(earth|ground|terrain|soil|dirt|sand|mud|clay|shale|slate|granite|marble|obsidian|geode|mineral|bedrock|landslide|rockfall|earthen|fossil|sediment|strata|tectonic|stalagmite|stalactite|petrify|formation|boulder|fissure|finger\s+of\s+the\s+mountain|tree\s+rings|gravel|rock\s+blast|wall\s+of\s+stones|create\s+earth\s+totem|simmerseed)\b/.test(lower)) return 'Earth'
+  if (/\b(fury|agony|torment|pain|suffering|brutality|savagery|ferocity|violence|bloodlust|bloodthorn|horrid\s+affliction|hunger\'?s\s+kiss|dark\s+judgement|divine\s+judgement|death\'?s\s+touch|death\s+skear|death\s+scythe|soulrender|rend\s+asunder|fatecarver|lesser\s+fatecarver|shattering\s+crystal|shattering\s+crystal\s+-\s+resonance|tyranny|wrath\s+of\s+the\s+crown|herald\s+of\s+ash|death\'?s\s+embrace|death\'?s\s+kiss|wrath|azra\'?s\s+wrath|barbarian\'?s\s+roar|pyroclasm|volcano|devastate)\b/.test(lower)) return 'Fury'
+  if (/\b(blood)(?!\s*(?:vampire|vampiric|hemorrh|crimson))\b/.test(lower)) return 'Blood'
+  if (/\b(paralys|paralyze|stun|immobilize|petrif|hold|root|entangle|web|snare|paralysis\s+rune|paralyzing\s+escape|rapiers\s+paralysis|fast\s+paralysis|sda_paralysis|xjkparalizepowerattack|paralysing\s+dread|paralyzingdread)\b/.test(lower)) return 'Paralysis'
+  if (/\b(stomp|knockdown|bash|slam|push|pull|force|gravity|quake|earthquake|tremor|impact|sunder|shatter|crush|bombardment|fracture|tremble|thundering\s+hooves|disintegrate\s+weapon|destroy\s+construct|weight\s+of\s+the\s+world|last\s+word|hurl\s+into\s+oblivion)\b/.test(lower)) return 'Force'
+  if (/\b(circle|aegis|ground|field|dome|zone|aura\s+damage|aura\s+heal|aura\s+protection|aural\s+decoy|corrosive\s+aura|penance\s+aura\s+-\s+fanning|penance\s+aura\s+-\s+shielding|molten\s+aura|arclight\s+aura|lunar\s+aura|aura\s+of\s+thorns|terrifying\s+aura|enraging\s+aura|soothing\s+aura)\b/.test(lower)) return 'Aura'
+  if (/\b(locust|insect\s+swarm|swarm|wall\s+of\s+locusts|webbed\s+cocoon)\b/.test(lower)) return 'Swarm'
+  if (/\b(fragments|fettering|scythe|whip|discharge|mending|verdure|spectral|ember\s+whip|carmine\s+scythe|carmine\s+whip|discharge\s+scythe|discharge\s+whip|ember\s+scythe|mending\s+scythe|verdure\s+scythe|spectral\s+scythe|verdure\s+whip|spectral\s+whip)\b/.test(lower)) return 'Fragments'
+  if (/\b(class\s+action|test\s+spell|fx\s+tester|projectile\s+tester|spell\s+tester|should\s+not\s+be\s+showing|imod\s+tester|close\s+photo\s+mode|open\s+photo\s+mode|reduce\s+stress\s+spell|perk\s+refund|pay\s+attention|spell\s+of\s+the\s+ritual|spellforscene|guide\s+spell|spellofmagus|spelldrinker|testspell|test\s+de\s+alma|empty\s+expl|nova\s+charge|nova|cooldown|passive\s+spell|side\s+effect|drag|ragdoll|combat\s+idle|non_combat\s+idle)\b/.test(lower)) return 'Test'
+
+  if (hasTome === false) return 'NoTome'
 
   return 'Other'
+}
+
+const SIGNIFICANT_WORDS = new Set([
+  'fire','flame','burn','frost','ice','cold','freeze','snow','sleet','hail','blizzard','fimbul','shock','lightning','thunder','thunderbolt','storm','scorch','flamestrike','zap',
+  'hellfire','firebomb','flare','inferno','apocalypse','carbonize','pyroclasm','immolate','balefire','molten','arclight','ash','ghostflame',
+  'heal','restore','cure','ward','resist','protection','turn','banish','undead','dispel',
+  'summon','conjure','familiar','dremora','atronach','reanimate','zombie','corpse','raise','call',
+  'bound','sword','battleaxe','bow','axe','blade','dagger','mace','warhammer','greatsword',
+  'detect','reveal','sense','life','clair','clairvoyance','locate','invis','muffle','sneak','hide','shroud',
+  'fear','terror','courage','calm','frenzy','rout','pacify','mind','charm','enrage','rage',
+  'armor','flesh','shield','oak','stone','hide','dragonhide','paralys','paralyze','stun',
+  'transmute','ore','iron','gold','silver','light','candle','torch','sun','radiance','beacon',
+  'daedra','dremora','rune','poison','toxic','plague','disease','venom','blight','blighted','corrosive',
+  'necro','necromancer','necromancy','necrotic','necromantic','bone','bones','skeletal','skeleton','skull','revenant','phantom','ghost','specter','wraith','shade','soul','spirit','decompose','thrall','minion',
+  'teleport','recall','portal','dimension','dragon','dovah','dragonborn','dragonfire',
+  'vampire','vampiric','hemorrh','drain','leech','siphon','absorb','lifesteal','mana',
+  'wind','gale','tempest','cyclone','tornado','zephyr','typhoon','twister','gust',
+  'rain','hail','sleet','snow','blizzard','water','waterbolt','waterlance','watersurge',
+  'dark','void','shadow','umbral','gloaming','daumbra','eldritch','astral','arcane','mystic',
+  'holy','sacred','divine','hallowed','blessed','sanctified','arkay','stendarr','mara','auriel',
+  'knowledge','wisdom','intellect','tome','book','scroll','imbue','enchant','infuse','empower',
+  'transmogrify','polymorph','shapeshift','transform','wildshape','werewolf',
+  'telekinesis','levitate','float','fortify','boost','blessing','inspire','invigorate','vigor',
+  'equilibrium','balance','fury','agony','torment','pain','bloodlust','bloodthorn','wrath',
+  'blood','stomp','knockdown','bash','slam','push','pull','force','gravity','quake','sunder',
+  'circle','aegis','ground','field','dome','zone','aura',
+  'locust','swarm','insect','fragments','fettering','scythe','whip','discharge','mending','verdure','spectral',
+  'wall',
+])
+
+function nameThemeSimilarity(a: string, b: string): number {
+  const wordsA = new Set(a.toLowerCase().split(/[\s\-]+/).filter(w => w.length > 2 && SIGNIFICANT_WORDS.has(w)))
+  const wordsB = new Set(b.toLowerCase().split(/[\s\-]+/).filter(w => w.length > 2 && SIGNIFICANT_WORDS.has(w)))
+  let shared = 0
+  wordsA.forEach(w => { if (wordsB.has(w)) shared++ })
+  return shared
+}
+
+function selectParents<T extends { name: string }>(
+  eligible: T[],
+  child: T,
+  maxParents: number,
+  rng: () => number,
+  themeMatching: boolean
+): T[] {
+  if (maxParents <= 1) {
+    const themeMatches = eligible.filter(p => classifySpellByName(p.name, !!(p as any).tomeFormId) === classifySpellByName(child.name, !!(child as any).tomeFormId))
+    if (themeMatching && themeMatches.length > 0) {
+      return [themeMatches[Math.floor(rng() * themeMatches.length)]]
+    }
+    if (eligible.length > 0) {
+      return [eligible[Math.floor(rng() * eligible.length)]]
+    }
+    return []
+  }
+
+  const scored = eligible.map(p => ({
+    p,
+    score: nameThemeSimilarity(p.name, child.name) + (classifySpellByName(p.name, !!(p as any).tomeFormId) === classifySpellByName(child.name, !!(child as any).tomeFormId) ? 1000 : 0)
+  }))
+  scored.sort((a, b) => b.score - a.score)
+
+  const topScore = scored[0]?.score ?? 0
+  const top = scored.filter(s => s.score === topScore)
+  const ordered = top.sort(() => rng() - 0.5)
+
+  return ordered.slice(0, maxParents).map(s => s.p)
 }
 
 const NODE_SPACING = 100
@@ -199,15 +296,17 @@ function layoutRadial(nodesById: Record<string, SpellNode>, rootIds: string[], a
 export interface TreeBuildRules {
   tierGap: 1 | 2 | 3 | 4
   maxChildren: number
+  maxParents: number
   rootCount: number
   themeMatching: boolean
-  seed: number | 'random'
+  seed?: number | 'random'
 }
 
 export function buildTreeFromScan(scan: SpellScanOutput, rules?: Partial<TreeBuildRules>): SpellTreeData {
   const seed = rules?.seed === 'random' || rules?.seed === undefined ? Math.floor(Math.random() * 2**32) : (rules?.seed as number)
   const rng = createRng(seed)
   const maxChildren = rules?.maxChildren || 3
+  const maxParents = rules?.maxParents || 1
   const tierGap = rules?.tierGap || 1
   const rootCount = Math.max(1, rules?.rootCount || 1)
   const themeMatching = rules?.themeMatching !== false
@@ -254,7 +353,7 @@ export function buildTreeFromScan(scan: SpellScanOutput, rules?: Partial<TreeBui
       nodesById[s.formId] = {
         formId: s.formId,
         name: s.name || s.formId,
-        theme: classifySpellByName(s.name),
+        theme: classifySpellByName(s.name, !!s.tomeFormId),
         skillLevel: s.skillLevel || 'Novice',
         tier: rankOf(s),
         x: 0,
@@ -282,23 +381,20 @@ export function buildTreeFromScan(scan: SpellScanOutput, rules?: Partial<TreeBui
           return tierOk && nodesById[p.formId].children.length < maxChildren
         }
       )
-      const parent = (() => {
-        const themeMatches = eligible.filter(p => classifySpellByName(p.name) === classifySpellByName(u.name))
-        if (themeMatching && themeMatches.length > 0) {
-          return themeMatches[Math.floor(rng() * themeMatches.length)]
-        }
-        if (eligible.length > 0) {
-          return eligible[Math.floor(rng() * eligible.length)]
-        }
-      const fallback = placed.slice().reverse().find(p => nodesById[p.formId].children.length < maxChildren && (rankOf(p) >= uRank - tierGap && rankOf(p) <= uRank))
-      if (fallback) return fallback
-      return roots[0]
-    })()
+      const parents = selectParents(eligible, u, maxParents, rng, themeMatching)
 
-      const pNode = nodesById[parent.formId]
-      pNode.children.push(u.formId)
-      node.prerequisites.push(parent.formId)
-      node.softPrereqs.push(parent.formId)
+      if (parents.length === 0) {
+        const fallback = placed.slice().reverse().find(p => nodesById[p.formId].children.length < maxChildren && (rankOf(p) >= uRank - tierGap && rankOf(p) <= uRank))
+        if (fallback) parents.push(fallback)
+        if (parents.length === 0) parents.push(roots[0])
+      }
+
+      for (const parent of parents) {
+        const pNode = nodesById[parent.formId]
+        pNode.children.push(u.formId)
+        node.prerequisites.push(parent.formId)
+        node.softPrereqs.push(parent.formId)
+      }
       node.softNeeded = node.softPrereqs.length
       placed.push(u)
     }
@@ -335,6 +431,7 @@ export function rebuildTreeFromData(data: SpellTreeData, rules?: Partial<TreeBui
   const seed = rules?.seed === 'random' || rules?.seed === undefined ? Math.floor(Math.random() * 2**32) : (rules?.seed as number)
   const rng = createRng(seed)
   const maxChildren = rules?.maxChildren || 3
+  const maxParents = rules?.maxParents || 1
   const tierGap = rules?.tierGap || 1
   const rootCount = Math.max(1, rules?.rootCount || 1)
   const themeMatching = rules?.themeMatching !== false
@@ -397,23 +494,20 @@ export function rebuildTreeFromData(data: SpellTreeData, rules?: Partial<TreeBui
           return tierOk && nodesById[p.formId].children.length < maxChildren
         }
       )
-      const parent = (() => {
-        const themeMatches = eligible.filter(p => classifySpellByName(p.name) === classifySpellByName(u.name))
-        if (themeMatching && themeMatches.length > 0) {
-          return rng ? themeMatches[Math.floor(rng() * themeMatches.length)] : themeMatches[themeMatches.length - 1]
-        }
-        if (eligible.length > 0) {
-          return rng ? eligible[Math.floor(rng() * eligible.length)] : eligible[eligible.length - 1]
-        }
-        const fallback = placed.slice().reverse().find(p => nodesById[p.formId].children.length < maxChildren && (rankOf(p) >= uRank - tierGap && rankOf(p) <= uRank))
-        if (fallback) return fallback
-        return roots[0]
-      })()
+      const parents = selectParents(eligible, u, maxParents, rng, themeMatching)
 
-      const pNode = nodesById[parent.formId]
-      pNode.children.push(u.formId)
-      node.prerequisites.push(parent.formId)
-      node.softPrereqs.push(parent.formId)
+      if (parents.length === 0) {
+        const fallback = placed.slice().reverse().find(p => nodesById[p.formId].children.length < maxChildren && (rankOf(p) >= uRank - tierGap && rankOf(p) <= uRank))
+        if (fallback) parents.push(fallback)
+        if (parents.length === 0) parents.push(roots[0])
+      }
+
+      for (const parent of parents) {
+        const pNode = nodesById[parent.formId]
+        pNode.children.push(u.formId)
+        node.prerequisites.push(parent.formId)
+        node.softPrereqs.push(parent.formId)
+      }
       node.softNeeded = node.softPrereqs.length
       placed.push(u)
     }

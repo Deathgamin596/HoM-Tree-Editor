@@ -3,7 +3,7 @@
   "version": "0.1.71",
   "identifier": "com.hom.editor",
   "build": {
-      "beforeDevCommand": "npm run run",
+    "beforeDevCommand": "npm run run",
     "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../out"

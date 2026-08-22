@@ -61,7 +61,8 @@ export function TitleBar() {
       }}
       data-tauri-drag-region
     >
-      <div className="flex-1 h-full flex items-center px-4" data-tauri-drag-region>
+      <div className="flex-1 h-full flex items-center px-4 gap-2" data-tauri-drag-region>
+        <img src="/icon.png" alt="HoM" className="h-4 w-4" />
         <span className="text-xs font-medium text-muted-foreground tracking-wide">
           Heart of Magic Tree Editor
         </span>

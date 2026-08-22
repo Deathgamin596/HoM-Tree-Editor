@@ -240,10 +240,16 @@ export default function HoMTreeEditor() {
   }
 
   const handleBuildRulesConfirm = (rules: TreeBuildRules) => {
-    if (!pendingScan) return
-    const built = buildTreeFromScan(pendingScan, rules)
-    handleImport(built)
-    setPendingScan(null)
+    if (pendingScan) {
+      const built = buildTreeFromScan(pendingScan, rules)
+      handleImport(built)
+      setPendingScan(null)
+    } else if (treeData) {
+      const rebuilt = rebuildTreeFromData(treeData, rules)
+      setTreeData(rebuilt)
+      setHistory([])
+      toast({ title: "Tree Rebuilt", description: "Spell tree structure has been regenerated." })
+    }
   }
 
   const handleExport = () => {
@@ -265,12 +271,7 @@ export default function HoMTreeEditor() {
   }
 
   const handleRebuildTree = () => {
-    if (!treeData) return
-    const seed = Math.floor(Math.random() * 2**32)
-    const rebuilt = rebuildTreeFromData(treeData, { seed })
-    setTreeData(rebuilt)
-    setHistory([])
-    toast({ title: "Tree Rebuilt", description: "Spell tree structure has been regenerated from current nodes." })
+    setIsBuildRulesOpen(true)
   }
 
   const findSchoolForNode = useCallback((nodeId: string): string | null => {
@@ -769,7 +770,7 @@ export default function HoMTreeEditor() {
         <div className="p-4 border-b border-border flex items-center justify-between">
           {!isSidebarCollapsed && (
             <div className="flex items-center gap-2">
-              <Wand2 className="w-5 h-5 text-accent" />
+              <img src="/icon.png" alt="HoM" className="h-5 w-5" />
               <h1 className="font-bold text-lg">HoM Tree Editor</h1>
             </div>
           )}
