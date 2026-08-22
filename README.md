@@ -1,10 +1,10 @@
 # Heart of Magic Tree Editor
 
-A desktop tool for visualizing and editing spell trees for the Heart of Magic mod. It reads scanned spell records, organizes them into radial school-based trees, and lets you refine prerequisites, themes, and layout before exporting a structured grimoire.
+A desktop tool for visualizing and editing spell trees for the Heart of Magic mod. It reads scanned spell records, organizes them into radial school-based trees, and lets you refine prerequisites, themes, and layout before exporting a json file you can copy and paste the contents of into the import feature of HoM.
 
 ## What It Does
 
-1. **Import / Scan** — Load a JSON scan of spells from the Heart of Magic mod or import an existing grimoire file.
+1. **Import / Scan** — Load a JSON scan of spells from the Heart of Magic mod or import an existing .Json file.
 2. **Tree Building** — Automatically groups spells by school, assigns tiers based on skill level, and lays them out in radial sectors.
 3. **Visual Editing** — Pan, zoom, drag, multi-select, and link nodes with hard/soft prerequisites in an interactive canvas.
 4. **Refine** — Edit display names, themes, lock positions, and rerun the tree builder with different rules without losing manual work.
