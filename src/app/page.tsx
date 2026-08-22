@@ -39,7 +39,8 @@ import {
   Crosshair,
   Settings2,
   Hash,
-  RefreshCw
+  RefreshCw,
+  Unlink
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
@@ -83,8 +84,8 @@ export default function HoMTreeEditor() {
   const [isGlobalView, setIsGlobalView] = useState(false)
   const [pendingScan, setPendingScan] = useState<any>(null)
   const [isBuildRulesOpen, setIsBuildRulesOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [nodeSearchQuery, setNodeSearchQuery] = useState('')
+  const [sidebarSearchQuery, setSidebarSearchQuery] = useState('')
   const [showRadialGuides, setShowRadialGuides] = useState(false)
   
   // Snap settings
@@ -693,13 +694,30 @@ export default function HoMTreeEditor() {
     })
   }
 
+  const handleSelectUnlinked = () => {
+    if (!treeData) return
+    const ids: string[] = []
+    const schools = selectedSchool ? [treeData.schools[selectedSchool]] : Object.values(treeData.schools)
+    schools.forEach(school => {
+      school.nodes.forEach(n => {
+        const hasLinks = (n.prerequisites || []).length > 0 || (n.children || []).length > 0 || (n.hardPrereqs || []).length > 0 || (n.softPrereqs || []).length > 0
+        if (!hasLinks) ids.push(n.formId)
+      })
+    })
+    setSelectedNodeIds(ids)
+    toast({ 
+      title: "Selection Synchronized", 
+      description: `${ids.length} unlinked spell${ids.length !== 1 ? 's' : ''} selected.` 
+    })
+  }
+
   const handleApplyGridSize = () => {
     setGridSize(tempGridSize);
     setIsGridPopoverOpen(false);
     toast({ title: "Grid Alignment", description: `Snapping set to ${tempGridSize} units.` });
   }
 
-  const filteredSchools = treeData ? Object.keys(treeData.schools).filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())) : []
+  const filteredSchools = treeData ? Object.keys(treeData.schools) : []
 
   const selectedNode = useMemo(() => {
     if (!treeData || !selectedNodeId) return null
@@ -731,6 +749,18 @@ export default function HoMTreeEditor() {
     return results.slice(0, 10)
   }, [treeData, selectedSchool, nodeSearchQuery])
 
+  const sidebarSearchResults = useMemo(() => {
+    if (!treeData || sidebarSearchQuery.length < 2) return []
+    const results: SpellNode[] = []
+    const schoolsToSearch = selectedSchool === null ? Object.values(treeData.schools) : [treeData.schools[selectedSchool]]
+    schoolsToSearch.forEach(school => {
+      school.nodes.forEach(node => {
+        if (node.name.toLowerCase().includes(sidebarSearchQuery.toLowerCase()) || node.formId.toLowerCase().includes(sidebarSearchQuery.toLowerCase())) results.push(node)
+      })
+    })
+    return results.slice(0, 10)
+  }, [treeData, selectedSchool, sidebarSearchQuery])
+
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden text-foreground">
       <TitleBar />
@@ -751,10 +781,37 @@ export default function HoMTreeEditor() {
         {!isSidebarCollapsed && (
           <div className="flex-1 flex flex-col min-h-0">
             <div className="p-4 space-y-6">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <input placeholder="Filter schools..." className="w-full bg-background border border-border rounded-md pl-9 pr-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-accent" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-              </div>
+              {!selectedSchool && !isGlobalView && (
+                <Popover open={sidebarSearchResults.length > 0}>
+                  <PopoverTrigger asChild>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Search spell..." className="pl-9 h-8 w-full text-xs rounded-full" value={sidebarSearchQuery} onChange={(e) => setSidebarSearchQuery(e.target.value)} />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-64" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <div className="max-h-64 overflow-y-auto">
+                       {sidebarSearchResults.map(n => (
+                         <button key={n.formId} onClick={() => {
+                           const school = findSchoolForNode(n.formId)
+                           if (school) {
+                             setSelectedSchool(school)
+                             setSelectedNodeIds([n.formId])
+                             setIsGlobalView(false)
+                           }
+                           setSidebarSearchQuery('')
+                         }} className="w-full flex items-center justify-between px-4 py-2 text-xs hover:bg-accent/10 border-b border-border">
+                          <div className="flex flex-col items-start">
+                            <span className="font-bold">{n.name}</span>
+                            <span className="text-[9px] opacity-40">{n.formId}</span>
+                          </div>
+                          <Target className="w-3 h-3 text-accent" />
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase text-muted-foreground px-2">Navigation</Label>
                 <button onClick={() => { setSelectedSchool(null); setSelectedNodeIds([]); setIsGlobalView(false); }} className={cn("w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md", (!selectedSchool && !isGlobalView) ? "bg-primary text-accent" : "text-muted-foreground hover:bg-secondary")}>
@@ -906,6 +963,9 @@ export default function HoMTreeEditor() {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground" onClick={handleSelectUnlinked}>
+                  <Unlink className="w-4 h-4" /> Select Unlinked
+                </Button>
               </div>
             )}
           </div>

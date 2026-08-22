@@ -6,10 +6,15 @@ import { Minus, Square, Copy, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function TitleBar() {
-  const appWindow = getCurrentWindow()
+  const [appWindow, setAppWindow] = useState<ReturnType<typeof getCurrentWindow> | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
 
   useEffect(() => {
+    setAppWindow(getCurrentWindow())
+  }, [])
+
+  useEffect(() => {
+    if (!appWindow) return
     let unlisten: (() => void) | undefined
 
     const setup = async () => {
@@ -32,15 +37,18 @@ export function TitleBar() {
     }
   }, [appWindow])
 
-  const handleMinimize = () => appWindow.minimize()
+  const handleMinimize = () => appWindow?.minimize()
   const handleMaximize = async () => {
+    if (!appWindow) return
     if (isMaximized) {
       appWindow.unmaximize()
     } else {
       appWindow.maximize()
     }
   }
-  const handleClose = () => appWindow.close()
+  const handleClose = () => appWindow?.close()
+
+  if (!appWindow) return null
 
   return (
     <div 

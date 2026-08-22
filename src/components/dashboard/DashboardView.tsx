@@ -58,7 +58,7 @@ export function DashboardView({ data, onSelectSchool }: DashboardViewProps) {
 
   return (
     <ScrollArea className="h-full bg-background/50">
-      <div className="p-8 space-y-8 max-w-6xl mx-auto">
+        <div className="p-8 space-y-8 max-w-6xl mx-auto">
         <div className="space-y-2">
           <h1 className="text-3xl font-headline font-bold text-accent flex items-center gap-3">
             <BookOpen className="w-8 h-8" />
@@ -126,23 +126,38 @@ export function DashboardView({ data, onSelectSchool }: DashboardViewProps) {
             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Skill Distribution</h3>
             <Card className="bg-card/40 border-border">
               <CardContent className="p-6 space-y-4">
-                {Object.entries(stats.skillLevelCounts).sort((a, b) => b[1] - a[1]).map(([level, count]) => (
-                  <div key={level} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{level}</span>
-                      <span className="font-bold text-accent">{count}</span>
+                {Object.entries(stats.skillLevelCounts).sort((a, b) => {
+                  const order = ['Novice', 'Apprentice', 'Adept', 'Expert', 'Master']
+                  const ia = order.indexOf(a[0])
+                  const ib = order.indexOf(b[0])
+                  return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib)
+                }).map(([level, count]) => {
+                  const skillColors: Record<string, string> = {
+                    Novice: '#787171',
+                    Apprentice: '#22c55e',
+                    Adept: '#3b82f6',
+                    Expert: '#a855f7',
+                    Master: '#eab308',
+                  }
+                  const color = skillColors[level] || '#94a3b8'
+                  return (
+                    <div key={level} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">{level}</span>
+                        <span className="font-bold" style={{ color }}>{count}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full" style={{ width: `${(count / stats.totalNodes) * 100}%`, backgroundColor: color }} />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${(count / stats.totalNodes) * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
-    </ScrollArea>
+      </ScrollArea>
   )
 }
 

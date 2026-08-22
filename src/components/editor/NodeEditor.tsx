@@ -1,14 +1,14 @@
 
 "use client"
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { SpellNode, SpellSchool } from '@/types/spell-tree'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Trash2, Link as LinkIcon, Lock, Unlock, MapPin, X, Star, StarOff, PlusCircle, Fingerprint, Layers, Scissors, Grid3X3, Compass, Crosshair } from 'lucide-react'
+import { Trash2, Link as LinkIcon, Lock, Unlock, MapPin, X, Star, StarOff, PlusCircle, Fingerprint, Layers, Scissors, Grid3X3, Compass, Crosshair, Copy, Check } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
@@ -47,6 +47,7 @@ export function NodeEditor({
 }: NodeEditorProps) {
 
   const selectedCount = selectedNodeIds.length
+  const [copied, setCopied] = useState(false)
 
   const currentDegrees = useMemo(() => {
     const { x, y } = node;
@@ -59,7 +60,7 @@ export function NodeEditor({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    if (name === 'x' || name === 'y' || name === 'tier' || name === 'softNeeded') {
+    if (name === 'x' || name === 'y' || name === 'softNeeded') {
       onUpdate(node.formId, { [name]: Number(value) })
     } else {
       onUpdate(node.formId, { [name]: value })
@@ -74,6 +75,15 @@ export function NodeEditor({
     const newX = Math.round(r * Math.cos(rad));
     const newY = Math.round(r * Math.sin(rad));
     onUpdate(node.formId, { x: newX, y: newY });
+  }
+
+  const handleCopyFormId = async () => {
+    try {
+      const digits = node.formId.slice(-8)
+      await navigator.clipboard.writeText(digits)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {}
   }
 
   const nodeMap = useMemo(() => {
@@ -216,34 +226,30 @@ export function NodeEditor({
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Display Name</Label>
-              <Input name="name" value={node.name} onChange={handleChange} className="bg-background border-border focus:ring-accent" />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Form ID</Label>
-              <Input name="formId" value={node.formId} onChange={handleChange} className="bg-background border-border font-mono text-xs focus:ring-accent" />
-              <p className="text-[9px] text-muted-foreground opacity-60 leading-tight">Changing this will update all arcane references throughout the grimoire.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Display Name</Label>
+                <Input value={node.name} readOnly className="bg-secondary/30 border-border cursor-default" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Spell School</Label>
+                <Input value={schoolName} readOnly className="bg-secondary/30 border-border cursor-default" />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Skill Level</Label>
-                <Select value={node.skillLevel} onValueChange={(val) => onUpdate(node.formId, { skillLevel: val })}>
-                  <SelectTrigger className="bg-background border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Novice">Novice</SelectItem>
-                    <SelectItem value="Apprentice">Apprentice</SelectItem>
-                    <SelectItem value="Adept">Adept</SelectItem>
-                    <SelectItem value="Expert">Expert</SelectItem>
-                    <SelectItem value="Master">Master</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Form ID</Label>
+                <div className="relative">
+                  <Input value={node.formId} readOnly className="bg-secondary/30 border-border font-mono text-xs cursor-default pr-8" />
+                  <button onClick={handleCopyFormId} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 hover:bg-secondary rounded text-muted-foreground hover:text-accent transition-colors" title="Copy Form ID">
+                    {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Tier</Label>
-                <Input type="number" name="tier" value={node.tier} onChange={handleChange} className="bg-background border-border" />
+                <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Skill Level</Label>
+                <Input value={node.skillLevel} readOnly className="bg-secondary/30 border-border cursor-default" />
               </div>
             </div>
 
