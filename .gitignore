@@ -19,10 +19,12 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -37,9 +39,53 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.genkit/*
+# env
 .env*
+!.env.example
+.env.local
+.env.*.local
 
-# firebase
-firebase-debug.log
-firestore-debug.log
+# genkit / AI
+.genkit/*
+src/ai/dev.ts
+src/ai/flows/
+src/ai/genkit.ts
+
+# tauri
+src-tauri/target/
+src-tauri/WixTools/
+*.appimage
+*.deb
+*.exe
+*.msi
+
+# ide
+.idx/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# archives
+*.7z
+*.tar.gz
+*.zip
+*.rar
+
+# backups
+backup_components/
+
+# app data / scans (large generated files)
+spell_scan_output.json
+spell_tree.json
+
+# placeholders
+src/lib/placeholder-images.json
+src/lib/placeholder-images.ts
+
+# misc root files
+.modified
+project.tar.gz
+
+# logs
+*.log
