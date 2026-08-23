@@ -43,3 +43,8 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# Loose Files
+theme.txt
+unthemed_spells.txt
+scan_unthemed.js
