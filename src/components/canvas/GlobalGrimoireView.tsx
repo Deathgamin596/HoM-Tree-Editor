@@ -289,6 +289,8 @@ export function GlobalGrimoireView({
 
     const prereqNodeIds = new Set<string>();
     const childNodeIds = new Set<string>();
+    const pathNodeIds = new Set<string>();
+    const pathLinkKeys = new Set<string>();
     
     const primarySelectedId = selectedNodeIds.length > 0 ? selectedNodeIds[0] : null;
 
@@ -303,6 +305,34 @@ export function GlobalGrimoireView({
         primarySelectedNode.prerequisites?.forEach(id => prereqNodeIds.add(id));
         primarySelectedNode.hardPrereqs?.forEach(id => prereqNodeIds.add(id));
         primarySelectedNode.softPrereqs?.forEach(id => prereqNodeIds.add(id));
+
+        const nodesById = new Map<string, SpellNode>();
+        for (const sName in schools) {
+          for (const n of schools[sName].nodes) {
+            nodesById.set(n.formId, n);
+          }
+        }
+
+        const ancestorIds: string[] = [];
+        let current = primarySelectedNode;
+        while (current && current.prerequisites.length > 0) {
+          const next = nodesById.get(current.prerequisites[0]);
+          if (!next) break
+          ancestorIds.push(next.formId);
+          current = next;
+        }
+
+        if (ancestorIds.length > 0) {
+          pathNodeIds.add(primarySelectedId);
+          for (const aid of ancestorIds) {
+            pathNodeIds.add(aid);
+          }
+          for (let i = 0; i < ancestorIds.length; i++) {
+            const childId = i === 0 ? primarySelectedId : ancestorIds[i - 1];
+            const parentId = ancestorIds[i];
+            pathLinkKeys.add(`${parentId}-${childId}`);
+          }
+        }
       }
     }
 
@@ -402,7 +432,8 @@ export function GlobalGrimoireView({
           if (childNode) {
             const isChildPath = selectedNodeIds.includes(node.formId);
             const isPrereqPath = selectedNodeIds.includes(childId);
-            const isHighlighted = isChildPath || isPrereqPath;
+            const isOnPathToRoot = pathLinkKeys.has(`${node.formId}-${childId}`);
+            const isHighlighted = isChildPath || isPrereqPath || isOnPathToRoot;
             
             const nX = x;
             const nY = y;
@@ -438,10 +469,10 @@ export function GlobalGrimoireView({
                   <line
                     x1={nX} y1={nY}
                     x2={x2} y2={y2}
-                    stroke={isPrereqPath ? "#22c55e" : (isChildPath ? "#f97316" : "hsl(var(--primary))")}
+                    stroke={isPrereqPath ? "#22c55e" : (isChildPath ? "#f97316" : (isOnPathToRoot ? "#a855f7" : "hsl(var(--primary))"))}
                     strokeWidth={isHighlighted ? "2.5" : "1.5"}
                     strokeOpacity={isHighlighted ? "0.8" : "0.2"}
-                    markerEnd={isPrereqPath ? "url(#arrow-prereq)" : (isChildPath ? "url(#arrow-child)" : "url(#arrow-default)")}
+                    markerEnd={isPrereqPath ? "url(#arrow-prereq)" : (isChildPath ? "url(#arrow-child)" : (isOnPathToRoot ? "url(#arrow-prereq)" : "url(#arrow-default)"))}
                     className="pointer-events-none group-hover:stroke-accent group-hover:stroke-opacity-100"
                   />
                 </g>
@@ -454,13 +485,15 @@ export function GlobalGrimoireView({
         const isPrereq = prereqNodeIds.has(node.formId);
         const isChild = childNodeIds.has(node.formId);
         const isRoot = schoolRoots.includes(node.formId);
-        
+        const isOnPathToRoot = pathNodeIds.has(node.formId);
+
         const isMatch = searchQuery.length > 1 && (
           node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           node.formId.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
         const nodeBorderColor = isSelected ? 'hsl(var(--accent))' :
+          isOnPathToRoot ? '#a855f7' :
           isPrereq ? '#22c55e' :
           isChild ? '#f97316' :
           isMatch ? '#facc15' :
@@ -474,8 +507,9 @@ export function GlobalGrimoireView({
               "spell-node absolute flex items-center justify-center rounded-full border bg-card/90 transition-all cursor-grab pointer-events-auto select-none group",
               (dragMode === 'node' || Object.keys(draggingNodesPos).length > 0) && "transition-none",
               isSelected ? "node-selected ring-2 ring-accent z-30 scale-110" : undefined,
-              isPrereq && !isSelected && "ring-2 ring-[#22c55e] z-20 scale-105",
-              isChild && !isSelected && "ring-2 ring-[#f97316]/50 z-20 scale-105",
+              isOnPathToRoot && !isSelected ? "ring-2 ring-[#a855f7]/60 z-20 scale-105" : undefined,
+              isPrereq && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#22c55e] z-20 scale-105" : undefined,
+              isChild && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#f97316]/50 z-20 scale-105" : undefined,
               isRoot && "bg-accent/5 z-10 shadow-[0_0_15px_hsl(var(--accent)/0.2)]",
               isMatch && "ring-4 ring-yellow-400 scale-150 z-40",
               draggingNodesPos[node.formId] && "cursor-grabbing opacity-70 scale-105",

@@ -254,6 +254,11 @@ export function NodeEditor({
             </div>
 
             <div className="space-y-2">
+              <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Source ESP</Label>
+              <Input value={node.plugin || '—'} readOnly className="bg-secondary/30 border-border font-mono text-xs cursor-default" />
+            </div>
+
+            <div className="space-y-2">
               <Label className="text-xs uppercase text-muted-foreground tracking-widest font-bold">Theme (Glyph)</Label>
               <Input name="theme" value={node.theme} onChange={handleChange} className="bg-background border-border" />
             </div>

@@ -305,6 +305,7 @@ export interface TreeBuildRules {
   maxChildren: number
   maxParents: number
   rootCount: number
+  rootCounts?: Record<string, number>
   themeMatching: boolean
   seed?: number | 'random'
 }
@@ -345,6 +346,7 @@ export function buildTreeFromScan(scan: SpellScanOutput, rules?: Partial<TreeBui
 
   for (const schoolName of Object.keys(schoolsMap)) {
     const spells = schoolsMap[schoolName]
+    const schoolRootCount = Math.max(1, rules?.rootCounts?.[schoolName] ?? rules?.rootCount ?? 1)
     // Sort by rank asc, vanilla preferred, then formId — first entry becomes root.
     const sorted = [...spells].sort((a, b) => {
       const r = rankOf(a) - rankOf(b)
@@ -354,7 +356,7 @@ export function buildTreeFromScan(scan: SpellScanOutput, rules?: Partial<TreeBui
       return a.formId.localeCompare(b.formId)
     })
 
-    const roots = sorted.slice(0, rootCount)
+    const roots = sorted.slice(0, schoolRootCount)
     const nodesById: Record<string, SpellNode> = {}
     for (const s of sorted) {
       nodesById[s.formId] = {
@@ -362,14 +364,15 @@ export function buildTreeFromScan(scan: SpellScanOutput, rules?: Partial<TreeBui
         name: s.name || s.formId,
         theme: classifySpellByName(s.name, !!s.tomeFormId),
         skillLevel: s.skillLevel || 'Novice',
-        tier: rankOf(s),
         x: 0,
         y: 0,
+        plugin: s.plugin,
         children: [],
         prerequisites: [],
         hardPrereqs: [],
         softPrereqs: [],
         softNeeded: 0,
+        tier: roots.some(r => r.formId === s.formId) ? 1 : rankOf(s),
         isRoot: roots.some(r => r.formId === s.formId),
         schoolColor: schoolColor(schoolName),
       }
@@ -465,6 +468,7 @@ export function rebuildTreeFromData(data: SpellTreeData, rules?: Partial<TreeBui
 
   for (const schoolName of schoolNames) {
     const spells = schoolsMap[schoolName]
+    const schoolRootCount = Math.max(1, rules?.rootCounts?.[schoolName] ?? rules?.rootCount ?? 1)
     const sorted = [...spells].sort((a, b) => {
       const r = rankOf(a) - rankOf(b)
       if (r !== 0) return r
@@ -473,7 +477,7 @@ export function rebuildTreeFromData(data: SpellTreeData, rules?: Partial<TreeBui
       return a.formId.localeCompare(b.formId)
     })
 
-    const roots = sorted.slice(0, rootCount)
+    const roots = sorted.slice(0, schoolRootCount)
     const nodesById: Record<string, SpellNode> = {}
     for (const s of sorted) {
       nodesById[s.formId] = {
@@ -483,6 +487,7 @@ export function rebuildTreeFromData(data: SpellTreeData, rules?: Partial<TreeBui
         hardPrereqs: [],
         softPrereqs: [],
         softNeeded: 0,
+        tier: roots.some(r => r.formId === s.formId) ? 1 : rankOf(s),
         isRoot: roots.some(r => r.formId === s.formId),
         schoolColor: s.schoolColor || schoolColor(schoolName),
       }

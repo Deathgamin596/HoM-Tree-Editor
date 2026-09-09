@@ -17,6 +17,7 @@ export interface SpellNode {
   name: string;
   x: number;
   y: number;
+  plugin?: string;
   locks?: SpellNodeLock[];
   isRoot?: boolean;
   isLocked?: boolean;

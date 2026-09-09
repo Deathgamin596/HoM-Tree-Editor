@@ -13,13 +13,15 @@ interface TreeBuildRulesDialogProps {
   onOpenChange: (open: boolean) => void
   onConfirm: (rules: TreeBuildRules) => void
   spellCount: number
+  schools?: string[]
 }
 
-export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount }: TreeBuildRulesDialogProps) {
+export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount, schools = [] }: TreeBuildRulesDialogProps) {
   const [tierGap, setTierGap] = useState<TreeBuildRules['tierGap']>(1)
   const [maxChildren, setMaxChildren] = useState(3)
   const [maxParents, setMaxParents] = useState(1)
   const [rootCount, setRootCount] = useState(1)
+  const [rootCounts, setRootCounts] = useState<Record<string, number>>({})
   const [themeMatching, setThemeMatching] = useState(true)
 
   const handleConfirm = () => {
@@ -28,9 +30,17 @@ export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount
       maxChildren,
       maxParents,
       rootCount,
+      rootCounts: Object.keys(rootCounts).length > 0 ? rootCounts : undefined,
       themeMatching,
     })
     onOpenChange(false)
+  }
+
+  const updateSchoolRootCount = (school: string, value: number) => {
+    setRootCounts(prev => {
+      const next = { ...prev, [school]: value }
+      return next
+    })
   }
 
   return (
@@ -75,9 +85,35 @@ export function TreeBuildRulesDialog({ open, onOpenChange, onConfirm, spellCount
               </SelectContent>
             </Select>
             <p className="text-[10px] text-muted-foreground">
-              Number of top-ranked spells to use as roots for each school.
+              Default number of top-ranked spells to use as roots for each school.
             </p>
           </div>
+
+          {schools.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Per-School Root Count</Label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {schools.map(school => (
+                  <div key={school} className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground truncate">{school}</span>
+                    <Select value={String(rootCounts[school] ?? rootCount)} onValueChange={(val) => updateSchoolRootCount(school, Number(val))}>
+                      <SelectTrigger className="w-20 bg-background border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Override root count for individual schools. Unset schools use the default above.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Max Children Per Node</Label>

@@ -101,7 +101,8 @@ export default function HoMTreeEditor() {
 
   const migrateGrimoireData = useCallback((data: any) => {
     if (!data.schools) return data;
-    const schoolNames = Object.keys(data.schools);
+    const migrated = JSON.parse(JSON.stringify(data));
+    const schoolNames = Object.keys(migrated.schools);
     const totalSchools = schoolNames.length || 1;
     const schoolColors: Record<string, string> = {
       Destruction: '#ef4444',
@@ -110,7 +111,7 @@ export default function HoMTreeEditor() {
       Restoration: '#eab308',
       Alteration: '#f97316',
     };
-    Object.entries(data.schools).forEach(([name, school]: [string, any], index: number) => {
+    Object.entries(migrated.schools).forEach(([name, school]: [string, any], index: number) => {
       const rootsSet = new Set<string>();
       if (school.root) rootsSet.add(school.root);
       if (Array.isArray(school.roots)) {
@@ -123,6 +124,7 @@ export default function HoMTreeEditor() {
         });
       }
       school.roots = Array.from(rootsSet);
+      school.root = school.roots.join(',');
       if (Array.isArray(school.nodes)) {
         school.nodes.forEach((node: any) => {
           node.isRoot = school.roots.includes(node.formId);
@@ -138,7 +140,7 @@ export default function HoMTreeEditor() {
         school.spokeAngle = (school.endAngle - school.startAngle) / Math.max(1, school.roots.length);
       }
     });
-    return data;
+    return migrated;
   }, []);
 
   // Load Tree Data
@@ -274,6 +276,196 @@ export default function HoMTreeEditor() {
     setIsBuildRulesOpen(true)
   }
 
+  const handleReorganizeTree = useCallback(() => {
+    if (!treeData) return
+    pushHistory(treeData)
+
+    setTreeData(prev => {
+      if (!prev) return prev
+      const newSchools = { ...prev.schools }
+
+      const orientation = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => (ay - cy) * (bx - cx) - (ax - cx) * (by - cy)
+      const segmentsIntersect = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number) => {
+        const o1 = orientation(ax, ay, bx, by, cx, cy)
+        const o2 = orientation(ax, ay, bx, by, dx, dy)
+        const o3 = orientation(cx, cy, dx, dy, ax, ay)
+        const o4 = orientation(cx, cy, dx, dy, bx, by)
+        if (o1 * o2 < 0 && o3 * o4 < 0) return true
+        return false
+      }
+
+      const countLinkCrossings = (nodesById: Map<string, SpellNode>, excludeA: string, excludeB: string) => {
+        const links: { x1: number; y1: number; x2: number; y2: number }[] = []
+        for (const n of nodesById.values()) {
+          if (n.formId === excludeA || n.formId === excludeB) continue
+          for (const childId of n.children) {
+            if (childId === excludeA || childId === excludeB) continue
+            const child = nodesById.get(childId)
+            if (!child) continue
+            links.push({ x1: n.x, y1: n.y, x2: child.x, y2: child.y })
+          }
+        }
+        let count = 0
+        for (let i = 0; i < links.length; i++) {
+          for (let j = i + 1; j < links.length; j++) {
+            if (segmentsIntersect(links[i].x1, links[i].y1, links[i].x2, links[i].y2, links[j].x1, links[j].y1, links[j].x2, links[j].y2)) {
+              count++
+            }
+          }
+        }
+        return count
+      }
+
+      for (const schoolName in newSchools) {
+        const school = newSchools[schoolName]
+        const nodes = school.nodes.map(n => ({ ...n }))
+        const nodesById = new Map(nodes.map(n => [n.formId, n]))
+
+        const roots = nodes.filter(n => n.prerequisites.length === 0)
+        const bfsOrder: SpellNode[] = []
+        const queue: SpellNode[] = [...roots]
+        const enqueued = new Set<string>([...roots.map(r => r.formId)])
+        while (queue.length > 0) {
+          const current = queue.shift()!
+          bfsOrder.push(current)
+          for (const childId of current.children) {
+            if (!enqueued.has(childId)) {
+              const child = nodesById.get(childId)
+              if (child) {
+                enqueued.add(childId)
+                queue.push(child)
+              }
+            }
+          }
+        }
+        for (const n of nodes) {
+          if (!enqueued.has(n.formId)) {
+            bfsOrder.push(n)
+          }
+        }
+
+        const rootIds = new Set(roots.map(r => r.formId))
+
+        for (let pass = 0; pass < 5; pass++) {
+          for (const node of bfsOrder) {
+            if (node.prerequisites.length === 0) continue
+
+            const parents = node.prerequisites
+              .map(pid => nodesById.get(pid))
+              .filter((n): n is SpellNode => !!n)
+
+            if (parents.length === 0) continue
+
+            const currentTotalDist = parents.reduce((sum, p) => sum + Math.hypot(node.x - p.x, node.y - p.y), 0)
+
+            let bestCandidate: typeof nodes[number] | null = null
+            let bestScore = -Infinity
+
+            const parentAngles = parents.map(p => Math.atan2(p.y, p.x))
+            const avgParentAngle = parentAngles.reduce((s, a) => s + a, 0) / parentAngles.length
+
+            const nodeTier = node.tier
+            const parentTier = parents[0].tier
+            const isHigherTier = nodeTier > parentTier
+            const minAllowedDist = isHigherTier ? 50 : 5
+            const maxAllowedDist = isHigherTier ? 150 : 15
+
+            for (const other of nodes) {
+              if (other.formId === node.formId) continue
+              if (other.tier !== node.tier) continue
+              if (rootIds.has(other.formId)) continue
+              if (other.x === node.x && other.y === node.y) continue
+
+              const candidateDists = parents.map(p => Math.hypot(other.x - p.x, other.y - p.y))
+              const candidateMaxDist = Math.max(...candidateDists)
+              const candidateMinDist = Math.min(...candidateDists)
+              if (candidateMaxDist > maxAllowedDist || candidateMinDist < minAllowedDist) continue
+
+              const newTotalDist = candidateDists.reduce((sum, d) => sum + d, 0)
+              if (newTotalDist >= currentTotalDist) continue
+
+              const nodeStartX = node.x
+              const nodeStartY = node.y
+              const otherStartX = other.x
+              const otherStartY = other.y
+
+              node.x = otherStartX
+              node.y = otherStartY
+              other.x = nodeStartX
+              other.y = nodeStartY
+
+              const crossings = countLinkCrossings(nodesById, node.formId, other.formId)
+
+              node.x = nodeStartX
+              node.y = nodeStartY
+              other.x = otherStartX
+              other.y = otherStartY
+
+              const candidateAngle = Math.atan2(other.y, other.x)
+              const angleDiff = Math.abs(Math.atan2(Math.sin(avgParentAngle - candidateAngle), Math.cos(avgParentAngle - candidateAngle)))
+
+              const distanceImprovement = currentTotalDist - newTotalDist
+              const angleScore = Math.max(0, 1 - angleDiff / Math.PI)
+              const crossingPenalty = crossings * 50
+
+              const score = distanceImprovement * 10 + angleScore * 100 - crossingPenalty
+
+              if (score > bestScore) {
+                bestScore = score
+                bestCandidate = other
+              }
+            }
+
+            if (bestCandidate) {
+              const tmpX = node.x
+              const tmpY = node.y
+              node.x = bestCandidate.x
+              node.y = bestCandidate.y
+              bestCandidate.x = tmpX
+              bestCandidate.y = tmpY
+            }
+          }
+        }
+
+        const seen = new Map<string, string>()
+        const finalNodes = Array.from(nodesById.values())
+        for (const n of finalNodes) {
+          const key = `${n.x},${n.y}`
+          if (seen.has(key)) {
+            const occupantId = seen.get(key)!
+            const occupant = nodesById.get(occupantId)
+            if (occupant && occupant.formId !== n.formId) {
+              let angle = 0
+              let attempts = 0
+              while (attempts < 20) {
+                const testX = Math.round(occupant.x + Math.cos(angle) * 10)
+                const testY = Math.round(occupant.y + Math.sin(angle) * 10)
+                const testKey = `${testX},${testY}`
+                if (!seen.has(testKey)) {
+                  n.x = testX
+                  n.y = testY
+                  break
+                }
+                angle += Math.PI / 7
+                attempts++
+              }
+            }
+          }
+          seen.set(`${n.x},${n.y}`, n.formId)
+        }
+
+        newSchools[schoolName] = {
+          ...school,
+          nodes: finalNodes
+        }
+      }
+
+      return { ...prev, schools: newSchools }
+    })
+
+    toast({ title: "Tree Reorganized", description: "Nodes swapped to group linked spells closer." })
+  }, [treeData, pushHistory, toast])
+
   const findSchoolForNode = useCallback((nodeId: string): string | null => {
     if (!treeData) return null
     for (const schoolName in treeData.schools) {
@@ -345,12 +537,15 @@ export default function HoMTreeEditor() {
         if (nodeIndex !== -1) {
           const newNodes = [...school.nodes];
           newNodes[nodeIndex] = { ...newNodes[nodeIndex], ...nodeUpdates };
-          school.nodes = newNodes;
+          
+          const newSchool = { ...school, nodes: newNodes };
           
           // Recalculate school roots if isRoot was part of the batch update
           if (nodeUpdates.isRoot !== undefined) {
-            school.roots = newNodes.filter(n => n.isRoot).map(n => n.formId);
+            newSchool.roots = newNodes.filter(n => n.isRoot).map(n => n.formId);
           }
+          
+          newSchools[schoolName] = newSchool;
         }
       });
       return { ...prev, schools: newSchools };
@@ -849,8 +1044,9 @@ export default function HoMTreeEditor() {
               </div>
             </div>
             <div className="mt-auto p-4 border-t border-border space-y-2">
-              <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleUndo} disabled={history.length === 0}><Undo2 className="w-3.5 h-3.5" /> Undo Action</Button>
-              <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleRebuildTree} disabled={!treeData}><RefreshCw className="w-3.5 h-3.5" /> Rebuild Tree</Button>
+               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleUndo} disabled={history.length === 0}><Undo2 className="w-3.5 h-3.5" /> Undo Action</Button>
+               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleReorganizeTree} disabled={!treeData}><Move className="w-3.5 h-3.5" /> Reorganize Tree</Button>
+               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleRebuildTree} disabled={!treeData}><RefreshCw className="w-3.5 h-3.5" /> Rebuild Tree</Button>
               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={() => setIsImportOpen(true)}><Code className="w-3.5 h-3.5" /> Import JSON</Button>
               <Button className="w-full justify-start gap-2 text-xs" onClick={handleExport} disabled={!treeData}><Download className="w-3.5 h-3.5" /> Export Grimoire</Button>
             </div>
@@ -1033,7 +1229,7 @@ export default function HoMTreeEditor() {
       <Toaster />
       <JSONImporter isOpen={isImportOpen} onOpenChange={setIsImportOpen} onImport={handleImport} onBuilderScanParsed={handleBuilderScanParsed} />
       <AddNodeDialog isOpen={isAddNodeOpen} onOpenChange={setIsAddNodeOpen} onConfirm={handleConfirmAddNode} />
-      <TreeBuildRulesDialog open={isBuildRulesOpen} onOpenChange={setIsBuildRulesOpen} onConfirm={handleBuildRulesConfirm} spellCount={pendingScan?.spells?.length || 0} />
+      <TreeBuildRulesDialog open={isBuildRulesOpen} onOpenChange={setIsBuildRulesOpen} onConfirm={handleBuildRulesConfirm} spellCount={pendingScan?.spells?.length || 0} schools={pendingScan ? [...new Set((pendingScan.spells as any[]).map((s: any) => s.school).filter(Boolean))] : treeData ? Object.keys(treeData.schools) : []} />
     </div>
   )
 }

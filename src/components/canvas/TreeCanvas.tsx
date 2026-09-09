@@ -426,6 +426,8 @@ export function TreeCanvas({
     const schoolRoots = school.roots || [];
     const prereqNodeIds = new Set<string>();
     const childNodeIds = new Set<string>();
+    const pathNodeIds = new Set<string>();
+    const pathLinkKeys = new Set<string>();
     
     const primarySelectedId = selectedNodeIds.length > 0 ? selectedNodeIds[0] : null;
 
@@ -437,6 +439,28 @@ export function TreeCanvas({
         primarySelectedNode.prerequisites?.forEach(id => prereqNodeIds.add(id));
         primarySelectedNode.hardPrereqs?.forEach(id => prereqNodeIds.add(id));
         primarySelectedNode.softPrereqs?.forEach(id => prereqNodeIds.add(id));
+
+        const nodesById = new Map(school.nodes.map(n => [n.formId, n]));
+        const ancestorIds: string[] = [];
+        let current = primarySelectedNode;
+        while (current && current.prerequisites.length > 0) {
+          const next = nodesById.get(current.prerequisites[0]);
+          if (!next) break
+          ancestorIds.push(next.formId);
+          current = next;
+        }
+
+        if (ancestorIds.length > 0) {
+          pathNodeIds.add(primarySelectedId);
+          for (const aid of ancestorIds) {
+            pathNodeIds.add(aid);
+          }
+          for (let i = 0; i < ancestorIds.length; i++) {
+            const childId = i === 0 ? primarySelectedId : ancestorIds[i - 1];
+            const parentId = ancestorIds[i];
+            pathLinkKeys.add(`${parentId}-${childId}`);
+          }
+        }
       }
     }
 
@@ -564,7 +588,8 @@ export function TreeCanvas({
         if (childNode) {
           const isChildPath = selectedNodeIds.includes(node.formId);
           const isPrereqPath = selectedNodeIds.includes(childId);
-          const isHighlighted = isChildPath || isPrereqPath;
+          const isOnPathToRoot = pathLinkKeys.has(`${node.formId}-${childId}`);
+          const isHighlighted = isChildPath || isPrereqPath || isOnPathToRoot;
 
           const sX = baseX;
           const sY = baseY;
@@ -621,8 +646,10 @@ export function TreeCanvas({
       const isSelected = selectedNodeIds.includes(node.formId);
       const isPrereq = prereqNodeIds.has(node.formId);
       const isChild = childNodeIds.has(node.formId);
+      const isOnPathToRoot = pathNodeIds.has(node.formId);
       
       const nodeBorderColor = isSelected ? 'hsl(var(--accent))' :
+        isOnPathToRoot ? '#a855f7' :
         isPrereq ? '#22c55e' :
         isChild ? '#f97316' :
         isMatch ? '#facc15' :
@@ -637,8 +664,9 @@ export function TreeCanvas({
             "transition-all",
             node.isLocked && "cursor-default",
             isSelected ? "node-selected ring-2 ring-accent ring-offset-1 ring-offset-background z-30 scale-110" : undefined,
-            isPrereq && !isSelected && "ring-2 ring-[#22c55e]/50 z-20 scale-105",
-            isChild && !isSelected && "ring-2 ring-[#f97316]/50 z-20 scale-105",
+            isOnPathToRoot && !isSelected ? "ring-2 ring-[#a855f7]/60 z-20 scale-105" : undefined,
+            isPrereq && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#22c55e]/50 z-20 scale-105" : undefined,
+            isChild && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#f97316]/50 z-20 scale-105" : undefined,
             isRoot && "shadow-[0_0_15px_hsl(var(--accent))] z-10",
             linkingSourceId === node.formId && "ring-2 ring-accent ring-offset-2 animate-pulse z-40",
             draggingNodesPos[node.formId] && "cursor-grabbing scale-110 opacity-80 z-50",
