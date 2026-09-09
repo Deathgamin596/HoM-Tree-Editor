@@ -19,6 +19,9 @@ interface TreeCanvasProps {
   snapToGrid?: boolean;
   snapToCoreSpokes?: boolean;
   snapToNodeSpokes?: boolean;
+  showNodeNames?: boolean;
+  nodeNameScale?: number;
+  swapSelection?: string[];
 }
 
 export function TreeCanvas({ 
@@ -33,7 +36,10 @@ export function TreeCanvas({
   gridSize = 25,
   snapToGrid = true,
   snapToCoreSpokes = false,
-  snapToNodeSpokes = false
+  snapToNodeSpokes = false,
+  showNodeNames = true,
+  nodeNameScale = 1,
+  swapSelection = []
 }: TreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.5 });
@@ -647,8 +653,10 @@ export function TreeCanvas({
       const isPrereq = prereqNodeIds.has(node.formId);
       const isChild = childNodeIds.has(node.formId);
       const isOnPathToRoot = pathNodeIds.has(node.formId);
+      const isSwapSelected = swapSelection.includes(node.formId);
       
       const nodeBorderColor = isSelected ? 'hsl(var(--accent))' :
+        isSwapSelected ? '#ec4899' :
         isOnPathToRoot ? '#a855f7' :
         isPrereq ? '#22c55e' :
         isChild ? '#f97316' :
@@ -664,9 +672,10 @@ export function TreeCanvas({
             "transition-all",
             node.isLocked && "cursor-default",
             isSelected ? "node-selected ring-2 ring-accent ring-offset-1 ring-offset-background z-30 scale-110" : undefined,
-            isOnPathToRoot && !isSelected ? "ring-2 ring-[#a855f7]/60 z-20 scale-105" : undefined,
-            isPrereq && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#22c55e]/50 z-20 scale-105" : undefined,
-            isChild && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#f97316]/50 z-20 scale-105" : undefined,
+            isSwapSelected && !isSelected ? "ring-2 ring-[#ec4899] z-30 scale-110" : undefined,
+            isOnPathToRoot && !isSelected && !isSwapSelected ? "ring-2 ring-[#a855f7]/60 z-20 scale-105" : undefined,
+            isPrereq && !isSelected && !isOnPathToRoot && !isSwapSelected ? "ring-2 ring-[#22c55e]/50 z-20 scale-105" : undefined,
+            isChild && !isSelected && !isOnPathToRoot && !isSwapSelected ? "ring-2 ring-[#f97316]/50 z-20 scale-105" : undefined,
             isRoot && "shadow-[0_0_15px_hsl(var(--accent))] z-10",
             linkingSourceId === node.formId && "ring-2 ring-accent ring-offset-2 animate-pulse z-40",
             draggingNodesPos[node.formId] && "cursor-grabbing scale-110 opacity-80 z-50",
@@ -682,10 +691,16 @@ export function TreeCanvas({
             visibility: isDragging ? 'hidden' : 'visible',
           }}
         >
-          <span className={cn(
-            "text-center font-bold truncate leading-tight px-0.5 pointer-events-none group-hover:whitespace-normal group-hover:bg-card/95 group-hover:absolute group-hover:z-50 group-hover:p-1 group-hover:rounded group-hover:border group-hover:border-border transition-all",
-            isRoot ? "text-[8px]" : "text-[7px]"
-          )}>
+          <span 
+            className={cn(
+              "font-bold leading-tight px-0.5 pointer-events-none transition-all",
+              isRoot ? "text-[8px]" : "text-[7px]",
+              showNodeNames
+                ? "whitespace-normal bg-card/95 absolute z-50 p-1 rounded border border-border text-center"
+                : "text-center truncate group-hover:whitespace-normal group-hover:bg-card/95 group-hover:absolute group-hover:z-50 group-hover:p-1 group-hover:rounded group-hover:border group-hover:border-border"
+            )}
+            style={{ transform: `scale(${nodeNameScale})`, transformOrigin: 'center center' }}
+          >
             {node.name}
           </span>
           <div 
@@ -705,7 +720,7 @@ export function TreeCanvas({
     });
 
     return { nodes, connections, hubLines, radialGuides, spokes, nodeSpokes };
-  }, [allSchools, schoolName, school, selectedNodeIds, dragMode, dragNodesInitialPos, searchQuery, showRadialGuides, gridSize, onLinkNodes]);
+  }, [allSchools, schoolName, school, selectedNodeIds, dragMode, dragNodesInitialPos, searchQuery, showRadialGuides, gridSize, onLinkNodes, showNodeNames, nodeNameScale, swapSelection]);
 
   const activeDragInfo = useMemo(() => {
     if (dragMode !== 'node' || !dragNodeId || !dragNodesPosRef.current[dragNodeId]) return null;

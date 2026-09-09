@@ -40,7 +40,9 @@ import {
   Settings2,
   Hash,
   RefreshCw,
-  Unlink
+  Unlink,
+  Trash2,
+  ArrowLeftRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
@@ -67,6 +69,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu"
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 
 const STORAGE_KEY = 'hom-tree-editor-data'
 const SETTINGS_KEY = 'hom-tree-editor-settings'
@@ -81,12 +84,15 @@ export default function HoMTreeEditor() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isAddNodeOpen, setIsAddNodeOpen] = useState(false)
-  const [isGlobalView, setIsGlobalView] = useState(false)
+  const [isGlobalView, setIsGlobalView] = useState(true)
   const [pendingScan, setPendingScan] = useState<any>(null)
   const [isBuildRulesOpen, setIsBuildRulesOpen] = useState(false)
   const [nodeSearchQuery, setNodeSearchQuery] = useState('')
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState('')
   const [showRadialGuides, setShowRadialGuides] = useState(false)
+  const [showNodeNames, setShowNodeNames] = useState(false)
+  const [nodeNameScale, setNodeNameScale] = useState(1)
+  const [swapSelection, setSwapSelection] = useState<string[]>([])
   
   // Snap settings
   const [snapToGrid, setSnapToGrid] = useState(true)
@@ -174,6 +180,8 @@ export default function HoMTreeEditor() {
         if (settings.snapToCoreSpokes !== undefined) setSnapToCoreSpokes(settings.snapToCoreSpokes)
         if (settings.snapToNodeSpokes !== undefined) setSnapToNodeSpokes(settings.snapToNodeSpokes)
         if (settings.showRadialGuides !== undefined) setShowRadialGuides(settings.showRadialGuides)
+        if (settings.showNodeNames !== undefined) setShowNodeNames(settings.showNodeNames)
+        if (settings.nodeNameScale !== undefined) setNodeNameScale(settings.nodeNameScale)
       } catch (e) {}
     }
   }, [])
@@ -181,9 +189,17 @@ export default function HoMTreeEditor() {
   // Save Tree Data
   useEffect(() => {
     if (treeData) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(treeData))
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(treeData))
+      } catch (e) {
+        toast({
+          title: "Storage Full",
+          description: "LocalStorage quota exceeded. Export your data and clear old saves.",
+          variant: "destructive",
+        })
+      }
     }
-  }, [treeData])
+  }, [treeData, toast])
 
   // Save Settings
   useEffect(() => {
@@ -192,10 +208,12 @@ export default function HoMTreeEditor() {
       snapToGrid,
       snapToCoreSpokes,
       snapToNodeSpokes,
-      showRadialGuides
+      showRadialGuides,
+      showNodeNames,
+      nodeNameScale
     }
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-  }, [gridSize, snapToGrid, snapToCoreSpokes, snapToNodeSpokes, showRadialGuides])
+  }, [gridSize, snapToGrid, snapToCoreSpokes, snapToNodeSpokes, showRadialGuides, showNodeNames, nodeNameScale])
 
   const pushHistory = useCallback((state: SpellTreeData) => {
     setHistory(prev => {
@@ -215,17 +233,6 @@ export default function HoMTreeEditor() {
       toast({ title: "Arcane Rewind", description: "Reverted to previous state." })
     }
   }, [history, toast])
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        e.preventDefault()
-        handleUndo()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleUndo])
 
   const handleImport = (data: SpellTreeData) => {
     const migrated = migrateGrimoireData(data)
@@ -276,196 +283,6 @@ export default function HoMTreeEditor() {
     setIsBuildRulesOpen(true)
   }
 
-  const handleReorganizeTree = useCallback(() => {
-    if (!treeData) return
-    pushHistory(treeData)
-
-    setTreeData(prev => {
-      if (!prev) return prev
-      const newSchools = { ...prev.schools }
-
-      const orientation = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => (ay - cy) * (bx - cx) - (ax - cx) * (by - cy)
-      const segmentsIntersect = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number) => {
-        const o1 = orientation(ax, ay, bx, by, cx, cy)
-        const o2 = orientation(ax, ay, bx, by, dx, dy)
-        const o3 = orientation(cx, cy, dx, dy, ax, ay)
-        const o4 = orientation(cx, cy, dx, dy, bx, by)
-        if (o1 * o2 < 0 && o3 * o4 < 0) return true
-        return false
-      }
-
-      const countLinkCrossings = (nodesById: Map<string, SpellNode>, excludeA: string, excludeB: string) => {
-        const links: { x1: number; y1: number; x2: number; y2: number }[] = []
-        for (const n of nodesById.values()) {
-          if (n.formId === excludeA || n.formId === excludeB) continue
-          for (const childId of n.children) {
-            if (childId === excludeA || childId === excludeB) continue
-            const child = nodesById.get(childId)
-            if (!child) continue
-            links.push({ x1: n.x, y1: n.y, x2: child.x, y2: child.y })
-          }
-        }
-        let count = 0
-        for (let i = 0; i < links.length; i++) {
-          for (let j = i + 1; j < links.length; j++) {
-            if (segmentsIntersect(links[i].x1, links[i].y1, links[i].x2, links[i].y2, links[j].x1, links[j].y1, links[j].x2, links[j].y2)) {
-              count++
-            }
-          }
-        }
-        return count
-      }
-
-      for (const schoolName in newSchools) {
-        const school = newSchools[schoolName]
-        const nodes = school.nodes.map(n => ({ ...n }))
-        const nodesById = new Map(nodes.map(n => [n.formId, n]))
-
-        const roots = nodes.filter(n => n.prerequisites.length === 0)
-        const bfsOrder: SpellNode[] = []
-        const queue: SpellNode[] = [...roots]
-        const enqueued = new Set<string>([...roots.map(r => r.formId)])
-        while (queue.length > 0) {
-          const current = queue.shift()!
-          bfsOrder.push(current)
-          for (const childId of current.children) {
-            if (!enqueued.has(childId)) {
-              const child = nodesById.get(childId)
-              if (child) {
-                enqueued.add(childId)
-                queue.push(child)
-              }
-            }
-          }
-        }
-        for (const n of nodes) {
-          if (!enqueued.has(n.formId)) {
-            bfsOrder.push(n)
-          }
-        }
-
-        const rootIds = new Set(roots.map(r => r.formId))
-
-        for (let pass = 0; pass < 5; pass++) {
-          for (const node of bfsOrder) {
-            if (node.prerequisites.length === 0) continue
-
-            const parents = node.prerequisites
-              .map(pid => nodesById.get(pid))
-              .filter((n): n is SpellNode => !!n)
-
-            if (parents.length === 0) continue
-
-            const currentTotalDist = parents.reduce((sum, p) => sum + Math.hypot(node.x - p.x, node.y - p.y), 0)
-
-            let bestCandidate: typeof nodes[number] | null = null
-            let bestScore = -Infinity
-
-            const parentAngles = parents.map(p => Math.atan2(p.y, p.x))
-            const avgParentAngle = parentAngles.reduce((s, a) => s + a, 0) / parentAngles.length
-
-            const nodeTier = node.tier
-            const parentTier = parents[0].tier
-            const isHigherTier = nodeTier > parentTier
-            const minAllowedDist = isHigherTier ? 50 : 5
-            const maxAllowedDist = isHigherTier ? 150 : 15
-
-            for (const other of nodes) {
-              if (other.formId === node.formId) continue
-              if (other.tier !== node.tier) continue
-              if (rootIds.has(other.formId)) continue
-              if (other.x === node.x && other.y === node.y) continue
-
-              const candidateDists = parents.map(p => Math.hypot(other.x - p.x, other.y - p.y))
-              const candidateMaxDist = Math.max(...candidateDists)
-              const candidateMinDist = Math.min(...candidateDists)
-              if (candidateMaxDist > maxAllowedDist || candidateMinDist < minAllowedDist) continue
-
-              const newTotalDist = candidateDists.reduce((sum, d) => sum + d, 0)
-              if (newTotalDist >= currentTotalDist) continue
-
-              const nodeStartX = node.x
-              const nodeStartY = node.y
-              const otherStartX = other.x
-              const otherStartY = other.y
-
-              node.x = otherStartX
-              node.y = otherStartY
-              other.x = nodeStartX
-              other.y = nodeStartY
-
-              const crossings = countLinkCrossings(nodesById, node.formId, other.formId)
-
-              node.x = nodeStartX
-              node.y = nodeStartY
-              other.x = otherStartX
-              other.y = otherStartY
-
-              const candidateAngle = Math.atan2(other.y, other.x)
-              const angleDiff = Math.abs(Math.atan2(Math.sin(avgParentAngle - candidateAngle), Math.cos(avgParentAngle - candidateAngle)))
-
-              const distanceImprovement = currentTotalDist - newTotalDist
-              const angleScore = Math.max(0, 1 - angleDiff / Math.PI)
-              const crossingPenalty = crossings * 50
-
-              const score = distanceImprovement * 10 + angleScore * 100 - crossingPenalty
-
-              if (score > bestScore) {
-                bestScore = score
-                bestCandidate = other
-              }
-            }
-
-            if (bestCandidate) {
-              const tmpX = node.x
-              const tmpY = node.y
-              node.x = bestCandidate.x
-              node.y = bestCandidate.y
-              bestCandidate.x = tmpX
-              bestCandidate.y = tmpY
-            }
-          }
-        }
-
-        const seen = new Map<string, string>()
-        const finalNodes = Array.from(nodesById.values())
-        for (const n of finalNodes) {
-          const key = `${n.x},${n.y}`
-          if (seen.has(key)) {
-            const occupantId = seen.get(key)!
-            const occupant = nodesById.get(occupantId)
-            if (occupant && occupant.formId !== n.formId) {
-              let angle = 0
-              let attempts = 0
-              while (attempts < 20) {
-                const testX = Math.round(occupant.x + Math.cos(angle) * 10)
-                const testY = Math.round(occupant.y + Math.sin(angle) * 10)
-                const testKey = `${testX},${testY}`
-                if (!seen.has(testKey)) {
-                  n.x = testX
-                  n.y = testY
-                  break
-                }
-                angle += Math.PI / 7
-                attempts++
-              }
-            }
-          }
-          seen.set(`${n.x},${n.y}`, n.formId)
-        }
-
-        newSchools[schoolName] = {
-          ...school,
-          nodes: finalNodes
-        }
-      }
-
-      return { ...prev, schools: newSchools }
-    })
-
-    toast({ title: "Tree Reorganized", description: "Nodes swapped to group linked spells closer." })
-  }, [treeData, pushHistory, toast])
-
   const findSchoolForNode = useCallback((nodeId: string): string | null => {
     if (!treeData) return null
     for (const schoolName in treeData.schools) {
@@ -473,6 +290,71 @@ export default function HoMTreeEditor() {
     }
     return null
   }, [treeData])
+
+  const handleSwapSelected = useCallback(() => {
+    if (!treeData || selectedNodeIds.length !== 2) return
+    pushHistory(treeData)
+
+    const [idA, idB] = selectedNodeIds
+    const schoolA = findSchoolForNode(idA)
+    const schoolB = findSchoolForNode(idB)
+
+    if (!schoolA || !schoolB) return
+    if (schoolA !== schoolB) {
+      toast({ title: "Swap Failed", description: "Both nodes must be in the same school.", variant: "destructive" })
+      return
+    }
+
+    setTreeData(prev => {
+      if (!prev) return prev
+      const school = prev.schools[schoolA]
+      const nodeA = school.nodes.find(n => n.formId === idA)
+      const nodeB = school.nodes.find(n => n.formId === idB)
+      if (!nodeA || !nodeB) return prev
+
+      const newNodes = school.nodes.map(n => {
+        if (n.formId === idA) return { ...n, x: nodeB.x, y: nodeB.y }
+        if (n.formId === idB) return { ...n, x: nodeA.x, y: nodeA.y }
+        return n
+      })
+
+      return {
+        ...prev,
+        schools: {
+          ...prev.schools,
+          [schoolA]: {
+            ...school,
+            nodes: newNodes
+          }
+        }
+      }
+    })
+
+    toast({ title: "Nodes Swapped", description: "Selected nodes have been swapped." })
+  }, [treeData, selectedNodeIds, pushHistory, findSchoolForNode, toast])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        handleUndo()
+      }
+      if (e.key === 's' && !e.ctrlKey && !e.metaKey && selectedNodeIds.length === 2) {
+        const target = e.target as HTMLElement
+        if (!target || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        handleSwapSelected()
+      }
+      if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
+        const target = e.target as HTMLElement
+        if (!target || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        setShowNodeNames(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleUndo, handleSwapSelected, selectedNodeIds])
 
   const handleUpdateNode = useCallback((nodeId: string, updates: Partial<SpellNode>, providedSchoolName?: string) => {
     const schoolName = providedSchoolName || findSchoolForNode(nodeId)
@@ -1032,6 +914,32 @@ export default function HoMTreeEditor() {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="display" className="border-none">
+                  <AccordionTrigger className="hover:no-underline py-2 px-2 text-[10px] uppercase text-muted-foreground">Display</AccordionTrigger>
+                  <AccordionContent className="pt-2">
+                    <div className="px-2 py-2 space-y-3 bg-secondary/20 rounded-lg border border-border/40">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Show Spell Names</Label>
+                        <Switch checked={showNodeNames} onCheckedChange={setShowNodeNames} />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Name Scale</Label>
+                          <span className="text-[10px] text-muted-foreground">{nodeNameScale.toFixed(1)}x</span>
+                        </div>
+                        <Slider
+                          min={0.5}
+                          max={3}
+                          step={0.1}
+                          value={[nodeNameScale]}
+                          onValueChange={([v]) => setNodeNameScale(v)}
+                        />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase text-muted-foreground px-2">Schools</Label>
                 <div className="space-y-1 mt-2">
@@ -1043,13 +951,13 @@ export default function HoMTreeEditor() {
                 </div>
               </div>
             </div>
-            <div className="mt-auto p-4 border-t border-border space-y-2">
-               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleUndo} disabled={history.length === 0}><Undo2 className="w-3.5 h-3.5" /> Undo Action</Button>
-               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleReorganizeTree} disabled={!treeData}><Move className="w-3.5 h-3.5" /> Reorganize Tree</Button>
-               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleRebuildTree} disabled={!treeData}><RefreshCw className="w-3.5 h-3.5" /> Rebuild Tree</Button>
+             <div className="mt-auto p-4 border-t border-border space-y-2">
+                <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleUndo} disabled={history.length === 0}><Undo2 className="w-3.5 h-3.5" /> Undo Action</Button>
+                <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={handleRebuildTree} disabled={!treeData}><RefreshCw className="w-3.5 h-3.5" /> Rebuild Tree</Button>
               <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={() => setIsImportOpen(true)}><Code className="w-3.5 h-3.5" /> Import JSON</Button>
-              <Button className="w-full justify-start gap-2 text-xs" onClick={handleExport} disabled={!treeData}><Download className="w-3.5 h-3.5" /> Export Grimoire</Button>
-            </div>
+                <Button className="w-full justify-start gap-2 text-xs" onClick={handleExport} disabled={!treeData}><Download className="w-3.5 h-3.5" /> Export Grimoire</Button>
+                <Button variant="outline" className="w-full justify-start gap-2 text-xs" onClick={() => { localStorage.removeItem(STORAGE_KEY); setTreeData(null); setHistory([]); toast({ title: "Storage Cleared", description: "All saved grimoire data has been removed." }) }}><Trash2 className="w-3.5 h-3.5" /> Clear Saved Data</Button>
+              </div>
           </div>
         )}
       </aside>
@@ -1082,6 +990,10 @@ export default function HoMTreeEditor() {
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" className={cn("gap-2 text-xs", showRadialGuides ? "text-accent bg-accent/10" : "text-muted-foreground")} onClick={() => setShowRadialGuides(!showRadialGuides)}>
                   <Compass className="w-4 h-4" /> {showRadialGuides ? "Radial On" : "Radial Off"}
+                </Button>
+
+                <Button variant="ghost" size="sm" className={cn("gap-2 text-xs", selectedNodeIds.length === 2 ? "text-accent bg-accent/10" : "text-muted-foreground")} onClick={handleSwapSelected} disabled={selectedNodeIds.length !== 2}>
+                  <ArrowLeftRight className="w-4 h-4" /> Swap Selected
                 </Button>
 
                 <DropdownMenu>
@@ -1184,20 +1096,26 @@ export default function HoMTreeEditor() {
               snapToGrid={snapToGrid}
               snapToCoreSpokes={snapToCoreSpokes}
               snapToNodeSpokes={snapToNodeSpokes}
-            />
-          ) : isGlobalView ? (
-            <GlobalGrimoireView 
-              schools={treeData.schools} 
-              selectedNodeIds={selectedNodeIds} 
-              onSelectNodes={setSelectedNodeIds} 
-              onNodesMove={handleUpdateNodes} 
-              onLinkNodes={handleLinkNodes} 
-              searchQuery={nodeSearchQuery} 
-              showRadialGuides={showRadialGuides} 
-              gridSize={gridSize}
-              snapToGrid={snapToGrid}
-              snapToCoreSpokes={snapToCoreSpokes}
-              snapToNodeSpokes={snapToNodeSpokes}
+               showNodeNames={showNodeNames}
+               nodeNameScale={nodeNameScale}
+               swapSelection={swapSelection}
+             />
+             ) : isGlobalView ? (
+               <GlobalGrimoireView 
+                 schools={treeData.schools} 
+                 selectedNodeIds={selectedNodeIds} 
+                 onSelectNodes={setSelectedNodeIds} 
+                 onNodesMove={handleUpdateNodes} 
+                 onLinkNodes={handleLinkNodes} 
+                 searchQuery={nodeSearchQuery} 
+                 showRadialGuides={showRadialGuides} 
+                 gridSize={gridSize}
+                 snapToGrid={snapToGrid}
+                 snapToCoreSpokes={snapToCoreSpokes}
+                 snapToNodeSpokes={snapToNodeSpokes}
+                 showNodeNames={showNodeNames}
+                 nodeNameScale={nodeNameScale}
+                 swapSelection={swapSelection}
             />
           ) : (
             <DashboardView data={treeData} onSelectSchool={setSelectedSchool} />

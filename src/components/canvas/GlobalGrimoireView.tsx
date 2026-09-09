@@ -18,6 +18,9 @@ interface GlobalGrimoireViewProps {
   snapToGrid?: boolean;
   snapToCoreSpokes?: boolean;
   snapToNodeSpokes?: boolean;
+  showNodeNames?: boolean;
+  nodeNameScale?: number;
+  swapSelection?: string[];
 }
 
 export function GlobalGrimoireView({ 
@@ -31,7 +34,10 @@ export function GlobalGrimoireView({
   gridSize = 25,
   snapToGrid = true,
   snapToCoreSpokes = false,
-  snapToNodeSpokes = false
+  snapToNodeSpokes = false,
+  showNodeNames = true,
+  nodeNameScale = 1,
+  swapSelection = []
 }: GlobalGrimoireViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 0.25 });
@@ -486,6 +492,7 @@ export function GlobalGrimoireView({
         const isChild = childNodeIds.has(node.formId);
         const isRoot = schoolRoots.includes(node.formId);
         const isOnPathToRoot = pathNodeIds.has(node.formId);
+        const isSwapSelected = swapSelection.includes(node.formId);
 
         const isMatch = searchQuery.length > 1 && (
           node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -493,6 +500,7 @@ export function GlobalGrimoireView({
         );
 
         const nodeBorderColor = isSelected ? 'hsl(var(--accent))' :
+          isSwapSelected ? '#ec4899' :
           isOnPathToRoot ? '#a855f7' :
           isPrereq ? '#22c55e' :
           isChild ? '#f97316' :
@@ -507,9 +515,10 @@ export function GlobalGrimoireView({
               "spell-node absolute flex items-center justify-center rounded-full border bg-card/90 transition-all cursor-grab pointer-events-auto select-none group",
               (dragMode === 'node' || Object.keys(draggingNodesPos).length > 0) && "transition-none",
               isSelected ? "node-selected ring-2 ring-accent z-30 scale-110" : undefined,
-              isOnPathToRoot && !isSelected ? "ring-2 ring-[#a855f7]/60 z-20 scale-105" : undefined,
-              isPrereq && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#22c55e] z-20 scale-105" : undefined,
-              isChild && !isSelected && !isOnPathToRoot ? "ring-2 ring-[#f97316]/50 z-20 scale-105" : undefined,
+              isSwapSelected && !isSelected ? "ring-2 ring-[#ec4899] z-30 scale-110" : undefined,
+              isOnPathToRoot && !isSelected && !isSwapSelected ? "ring-2 ring-[#a855f7]/60 z-20 scale-105" : undefined,
+              isPrereq && !isSelected && !isOnPathToRoot && !isSwapSelected ? "ring-2 ring-[#22c55e] z-20 scale-105" : undefined,
+              isChild && !isSelected && !isOnPathToRoot && !isSwapSelected ? "ring-2 ring-[#f97316]/50 z-20 scale-105" : undefined,
               isRoot && "bg-accent/5 z-10 shadow-[0_0_15px_hsl(var(--accent)/0.2)]",
               isMatch && "ring-4 ring-yellow-400 scale-150 z-40",
               draggingNodesPos[node.formId] && "cursor-grabbing opacity-70 scale-105",
@@ -522,10 +531,16 @@ export function GlobalGrimoireView({
               borderColor: nodeBorderColor,
             }}
           >
-            <span className={cn(
-              "font-bold text-center px-0.5 truncate leading-tight pointer-events-none group-hover:whitespace-normal group-hover:bg-card/95 group-hover:absolute group-hover:z-50 group-hover:p-1 group-hover:rounded group-hover:border group-hover:border-border transition-all",
-              isRoot ? "text-[8px]" : "text-[7px]"
-            )}>
+            <span 
+              className={cn(
+                "font-bold leading-tight px-0.5 pointer-events-none transition-all",
+                isRoot ? "text-[8px]" : "text-[7px]",
+                showNodeNames
+                  ? "whitespace-normal bg-card/95 absolute z-50 p-1 rounded border border-border text-center"
+                  : "text-center truncate group-hover:whitespace-normal group-hover:bg-card/95 group-hover:absolute group-hover:z-50 group-hover:p-1 group-hover:rounded group-hover:border group-hover:border-border"
+              )}
+              style={{ transform: `scale(${nodeNameScale})`, transformOrigin: 'center center' }}
+            >
               {node.name}
             </span>
             {node.isLocked && (
@@ -537,7 +552,7 @@ export function GlobalGrimoireView({
     });
 
     return { nodes, connections, hubLines, radialGuides, spokes, nodeSpokes };
-  }, [schools, selectedNodeIds, searchQuery, showRadialGuides, draggingNodesPos, dragMode, gridSize, onLinkNodes]);
+  }, [schools, selectedNodeIds, searchQuery, showRadialGuides, draggingNodesPos, dragMode, gridSize, onLinkNodes, showNodeNames, nodeNameScale, swapSelection]);
 
   const activeDragInfo = useMemo(() => {
     if (dragMode !== 'node' || !dragNodeId || !draggingNodesPos[dragNodeId]) return null;
